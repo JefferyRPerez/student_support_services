@@ -1,26 +1,36 @@
-<div class="col-md-6 col-lg-4 mb-4">
-    <div class="card shadow-sm h-100">
-        <div class="card-header bg-white">
-            <small class="text-muted">Last Updated: {{ event['last updated'] }}</small>
-            <h5 class="mt-1">{{ event['Event Name'] }}</h5>
+<div class="container py-5">
+    <div class="row">
+
+        {% for event in events %}
+
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <small class="text-muted">Last Updated: {{ event['last updated'] }}</small>
+                    <h5 class="mt-1">{{ event['Event Name'] }}</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ event['Description'] }}</p>
+                    <hr>
+                    <p class="mb-1"><strong>Date:</strong> {{ event['Date'] }}</p>
+                    <p class="mb-1"><strong>Time:</strong> {{ event['Time'] }}</p>
+                    
+                    <p class="mb-0">
+                        <strong>Location:</strong> 
+                        <a href="#" 
+                            class="text-primary map-link" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#mapModal" 
+                            data-address="{{ event['Location'] }}">
+                            {{ event['Location'] }}
+                        </a>
+                    </p>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <p>{{ event['Description'] }}</p>
-            <hr>
-            <p class="mb-1"><strong>Date:</strong> {{ event['Date'] }}</p>
-            <p class="mb-1"><strong>Time:</strong> {{ event['Time'] }}</p>
-            
-            <p class="mb-0">
-                <strong>Location:</strong> 
-                <a href="#" 
-                    class="text-primary map-link" 
-                    data-bs-toggle="modal" 
-                    data-bs-target="#mapModal" 
-                    data-address="{{ event['Location'] }}">
-                    {{ event['Location'] }}
-                </a>
-            </p>
-        </div>
+
+        {% endfor %}
+
     </div>
 </div>
 

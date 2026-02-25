@@ -23,9 +23,11 @@ def index():
     all_events = getEvents() 
     selected_category = request.args.get('cat') 
 
-    if selected_category:
-        filtered = [e for e in all_events if e['Status'] == selected_category] 
-    else:
+    # If NO category is picked, show everything
+    if not selected_category:
         filtered = all_events
+    else:
+        # If a category IS picked, filter the list
+        filtered = [e for e in all_events if str(e.get('Status', '')).lower() == selected_category.lower()]
     
     return render_template('index.html', events=filtered, active_cat=selected_category)

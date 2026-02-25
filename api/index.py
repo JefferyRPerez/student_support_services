@@ -1,16 +1,22 @@
-import pandas as pd 
+import pandas as pd
 from flask import Flask, render_template, request
 import os 
 
 app = Flask(__name__)
 
-# Mock database of events
 def getEvents():
-    df = pd.read_excel("data.xlsx") 
-
-    df = df.fillna('') 
-
-    return df.to_dict(orient='records') 
+    # This finds the directory where index.py lives
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    # This points to data.xlsx in that same folder
+    excel_path = os.path.join(basedir, "data.xlsx") 
+    
+    try:
+        df = pd.read_excel(excel_path) 
+        df = df.fillna('') 
+        return df.to_dict(orient='records') 
+    except Exception as e:
+        print(f"Error reading Excel: {e}")
+        return [] # Return empty list so the site doesn't crash
 
 @app.route('/')
 def index():

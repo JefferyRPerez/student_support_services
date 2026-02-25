@@ -1,44 +1,31 @@
 import pandas as pd
-from flask import Flask, render_template, request
-import os 
+from flask import Flask, render_template
+import io
+import requests
 
 app = Flask(__name__)
 
+# Replace this with the URL you copied from 'Publish to Web'
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1yBAYRhI48MPjRvd3mkaBpY-T8Fpnsj3-/edit?usp=sharing&ouid=118425780521354539873&rtpof=true&sd=true"
+
 def getEvents():
-    # Attempt 1: Look in the same folder as this script
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    path1 = os.path.join(basedir, "data.xlsx")
-    
-    # Attempt 2: Look in the parent folder (root)
-    path2 = os.path.join(os.getcwd(), "data.xlsx")
-
-    final_path = None
-    if os.path.exists(path1):
-        final_path = path1
-    elif os.path.exists(path2):
-        final_path = path2
-
-    if not final_path:
-        # This will show up in Vercel Logs to tell us why it's empty
-        print(f"CRITICAL: data.xlsx not found in {path1} or {path2}")
-        return []
-
     try:
-        # Use openpyxl as the engine specifically
-        df = pd.read_excel(final_path, engine='openpyxl')
+        # Fetch the data from Google Sheets
+        response = requests.get(SHEET_CSV_URL)
+        response.raise_for_status() # Check if the link is working
+        
+        # Turn the text into a format Pandas understands
+        df = pd.read_csv(io.StringIO(response.text))
+        
         df = df.fillna('')
-        # Strip spaces from headers
         df.columns = [str(c).strip() for c in df.columns]
         return df.to_dict(orient='records')
     except Exception as e:
-        print(f"ERROR reading Excel: {e}")
+        print(f"Error fetching from Google Sheets: {e}")
         return []
 
 @app.route('/')
 def index():
-    # 1. Get all rows from Excel
-    all_events = getEvents() 
-    
-    # 2. We send the whole list to the HTML, no filtering
+    all_events = getEvents()
     return render_template('index.html', events=all_events)
     

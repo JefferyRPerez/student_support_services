@@ -20,14 +20,9 @@ def getEvents():
 
 @app.route('/')
 def index():
+    # 1. Get all rows from Excel
     all_events = getEvents() 
-    selected_category = request.args.get('cat') 
-
-    # If NO category is picked, show everything
-    if not selected_category:
-        filtered = all_events
-    else:
-        # If a category IS picked, filter the list
-        filtered = [e for e in all_events if str(e.get('Status', '')).lower() == selected_category.lower()]
     
-    return render_template('index.html', events=filtered, active_cat=selected_category)
+    # 2. We send the whole list to the HTML, no filtering
+    return render_template('index.html', events=all_events)
+    

@@ -6,7 +6,7 @@ import requests
 app = Flask(__name__)
 
 # Replace this with the URL you copied from 'Publish to Web'
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1yBAYRhI48MPjRvd3mkaBpY-T8Fpnsj3-/edit?usp=sharing&ouid=118425780521354539873&rtpof=true&sd=true"
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUHsbsw4bC_qbSz23COuzJrsfH7vF7K1yZEbgo2d35ohbzTRYO3fAHilgfRx9xUQ/pub?output=csv"
 
 def getEvents():
     try:

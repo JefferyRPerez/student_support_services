@@ -2,6 +2,12 @@ import pandas as pd
 from flask import Flask, render_template
 import io
 import requests
+import sys
+from pathlib import Path
+
+CURRENT_DIR = Path(__file__).resolve().parent
+if str(CURRENT_DIR) not in sys.path:
+    sys.path.append(str(CURRENT_DIR))
 
 from event_classifier import group_events_by_category, EVENT_CATEGORIES, CATEGORY_LABELS
 
@@ -12,7 +18,7 @@ SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUHsbsw4bC_qbS
 
 def getEvents():
     try:
-        response = requests.get(SHEET_CSV_URL)
+        response = requests.get(SHEET_CSV_URL, timeout=15)
         response.raise_for_status()
 
         df = pd.read_csv(io.StringIO(response.text))

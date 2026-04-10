@@ -10,6 +10,64 @@
         .card { transition: transform 0.2s; border: none; }
         .card:hover { transform: translateY(-5px); }
         .map-link { cursor: pointer; text-decoration: none; font-weight: bold; }
+        .category-section + .category-section { margin-top: 3rem; }
+        .category-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        .filter-chip {
+            appearance: none;
+            background-color: #fff;
+            border: 1px solid #ced4da;
+            border-radius: 999px;
+            color: #495057;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s ease;
+        }
+        .filter-chip:hover,
+        .filter-chip:focus {
+            border-color: #212529;
+            color: #212529;
+            outline: none;
+        }
+        .filter-chip.is-active {
+            background-color: #212529;
+            border-color: #212529;
+            color: #fff;
+        }
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+        .category-title { margin: 0; }
+        .category-count {
+            background-color: #212529;
+            color: #fff;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.35rem 0.75rem;
+        }
+        .event-category-badge {
+            display: inline-block;
+            background-color: #e9ecef;
+            color: #495057;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            padding: 0.25rem 0.65rem;
+        }
+        .is-hidden { display: none; }
     </style>
 </head>
 <body>
@@ -22,9 +80,63 @@
 
 <div class="container py-5">
     <h1 class="mb-4 text-center">Current Events</h1>
-    
-    <div class="row">
-        {% if events %}
+
+    {% if category_filters is defined and category_filters|length > 1 %}
+    <div class="category-filters" aria-label="Filter events by category">
+        {% for filter in category_filters %}
+        <button
+            type="button"
+            class="filter-chip{% if filter.key == 'all' %} is-active{% endif %}"
+            data-filter="{{ filter.key }}">
+            {{ filter.label }}
+        </button>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if categories is defined and categories %}
+        {% for category in categories %}
+        <section class="category-section" data-category="{{ category.key }}">
+            <div class="category-header">
+                <h2 class="h4 category-title">{{ category.label }}</h2>
+                <span class="category-count">{{ category.count }} event{{ '' if category.count == 1 else 's' }}</span>
+            </div>
+
+            <div class="row">
+                {% for event in category.events %}
+                <div class="col-md-6 col-lg-4 mb-4" data-category-card="{{ category.key }}">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-white border-0 pt-3">
+                            <small class="text-muted">Updated: {{ event['Last Updated'] }}</small>
+                        </div>
+                        <div class="card-body">
+                            <span class="event-category-badge">{{ category.label }}</span>
+                            <h5 class="card-title text-primary">{{ event['Event Name'] }}</h5>
+                            <p class="card-text text-secondary">{{ event['Description'] }}</p>
+                            <hr>
+                            <div class="small">
+                                <p class="mb-1"><strong>📅 Date:</strong> {{ event['Date'] }}</p>
+                                <p class="mb-1"><strong>⏰ Time:</strong> {{ event['Time'] }}</p>
+                                <p class="mb-1">
+                                    <strong>📍 Location:</strong>
+                                    <a href="#"
+                                       class="text-decoration-underline map-link"
+                                       data-bs-toggle="modal"
+                                       data-bs-target="#mapModal"
+                                       data-address="{{ event['Location'] }}">
+                                       {{ event['Location'] }}
+                                    </a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    {% elif events %}
+        <div class="row">
             {% for event in events %}
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card shadow-sm h-100">
@@ -32,6 +144,9 @@
                         <small class="text-muted">Updated: {{ event['Last Updated'] }}</small>
                     </div>
                     <div class="card-body">
+                        {% if event['ai_category'] is defined and event['ai_category']['category_label'] is defined %}
+                        <span class="event-category-badge">{{ event['ai_category']['category_label'] }}</span>
+                        {% endif %}
                         <h5 class="card-title text-primary">{{ event['Event Name'] }}</h5>
                         <p class="card-text text-secondary">{{ event['Description'] }}</p>
                         <hr>
@@ -39,11 +154,11 @@
                             <p class="mb-1"><strong>📅 Date:</strong> {{ event['Date'] }}</p>
                             <p class="mb-1"><strong>⏰ Time:</strong> {{ event['Time'] }}</p>
                             <p class="mb-1">
-                                <strong>📍 Location:</strong> 
-                                <a href="#" 
-                                   class="text-decoration-underline map-link" 
-                                   data-bs-toggle="modal" 
-                                   data-bs-target="#mapModal" 
+                                <strong>📍 Location:</strong>
+                                <a href="#"
+                                   class="text-decoration-underline map-link"
+                                   data-bs-toggle="modal"
+                                   data-bs-target="#mapModal"
                                    data-address="{{ event['Location'] }}">
                                    {{ event['Location'] }}
                                 </a>
@@ -53,13 +168,15 @@
                 </div>
             </div>
             {% endfor %}
-        {% else %}
+        </div>
+    {% else %}
+        <div class="row">
             <div class="col-12 text-center py-5">
                 <h3>No Events Found</h3>
                 <p class="text-muted">The Excel file appears to be empty or was not found.</p>
             </div>
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
 </div>
 
 <div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
@@ -82,6 +199,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     const mapLinks = document.querySelectorAll('.map-link');
     const mapFrame = document.getElementById('mapFrame');
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    const categorySections = document.querySelectorAll('[data-category]');
 
     mapLinks.forEach(link => {
         link.addEventListener('click', function() {
@@ -89,6 +208,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const encodedAddress = encodeURIComponent(address);
             // Updated Google Maps Embed URL
             mapFrame.src = `https://maps.google.com/maps?q=${encodedAddress}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+        });
+    });
+
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const selectedFilter = this.getAttribute('data-filter');
+
+            filterButtons.forEach(chip => {
+                chip.classList.toggle('is-active', chip === this);
+            });
+
+            categorySections.forEach(section => {
+                const sectionCategory = section.getAttribute('data-category');
+                const shouldShow = selectedFilter === 'all' || sectionCategory === selectedFilter;
+                section.classList.toggle('is-hidden', !shouldShow);
+            });
         });
     });
 });

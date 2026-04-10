@@ -27,18 +27,22 @@ def getEvents():
 @app.route('/')
 def index():
     all_events = getEvents()
-    grouped_events = group_events_by_category(all_events)
+    visible_categories = []
 
-    visible_categories = [
-        {
-            "key": key,
-            "label": CATEGORY_LABELS[key],
-            "events": grouped_events[key],
-            "count": len(grouped_events[key]),
-        }
-        for key in EVENT_CATEGORIES
-        if grouped_events[key]
-    ]
+    try:
+        grouped_events = group_events_by_category(all_events)
+        visible_categories = [
+            {
+                "key": key,
+                "label": CATEGORY_LABELS[key],
+                "events": grouped_events[key],
+                "count": len(grouped_events[key]),
+            }
+            for key in EVENT_CATEGORIES
+            if grouped_events[key]
+        ]
+    except Exception as e:
+        print(f"Error grouping events by category: {e}")
 
     return render_template(
         'index.html',

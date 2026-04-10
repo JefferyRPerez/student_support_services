@@ -1,10 +1,7 @@
-import json 
-from collections import OrderedDict 
-
-from openai import OpenAI 
-
-
-client = OpenAI() 
+import json
+import os
+from collections import OrderedDict
+from functools import lru_cache
 
 EVENT_CATEGORIES = [
     "club_events",
@@ -71,31 +68,61 @@ def build_event_text(event):
     ]) 
 
 
-def classify_event(event):
-    response = client.responses.create(
-        model="gpt-4o-mini",
-        input=[
-            {"role": "system", "content": CLASSIFIER_SYSTEM_PROMPT},
-            {"role": "user", "content": build_event_text(event)},
-        ],
-        text={
-            "format": {
-                "type": "json_schema",
-                "name": "event_category_result",
-                "strict": True,
-                "schema": CATEGORY_SCHEMA,
-            }
-        },
-    )
+def get_openai_client():
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is not configured.")
+    try:
+        from openai import OpenAI
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("The openai package is not installed in this deployment.") from exc
+    return OpenAI(api_key=api_key)
 
-    result = json.loads(response.output_text)
 
+def fallback_category_result():
     return {
-        "category": result["category"],
-        "category_label": CATEGORY_LABELS[result["category"]],
-        "confidence": result["confidence"],
-        "reason": result["reason"],
+        "category": "other",
+        "category_label": CATEGORY_LABELS["other"],
+        "confidence": "low",
+        "reason": "AI categorization is unavailable, so this event was placed in Other.",
     }
+
+
+@lru_cache(maxsize=256)
+def classify_event_text(event_text):
+    try:
+        client = get_openai_client()
+        response = client.responses.create(
+            model="gpt-4o-mini",
+            input=[
+                {"role": "system", "content": CLASSIFIER_SYSTEM_PROMPT},
+                {"role": "user", "content": event_text},
+            ],
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "event_category_result",
+                    "strict": True,
+                    "schema": CATEGORY_SCHEMA,
+                }
+            },
+        )
+
+        result = json.loads(response.output_text)
+
+        return {
+            "category": result["category"],
+            "category_label": CATEGORY_LABELS[result["category"]],
+            "confidence": result["confidence"],
+            "reason": result["reason"],
+        }
+    except Exception as e:
+        print(f"Error classifying event: {e}")
+        return fallback_category_result()
+
+
+def classify_event(event):
+    return classify_event_text(build_event_text(event))
 
 
 def group_events_by_category(events):

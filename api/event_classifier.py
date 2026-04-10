@@ -27,12 +27,88 @@ CATEGORY_LABELS = {
     "other": "Other",
 }
 
+KEYWORD_CATEGORY_RULES = {
+    "club_events": [
+        "club",
+        "organization",
+        "student org",
+        "association",
+        "chapter",
+    ],
+    "professional_development": [
+        "career",
+        "resume",
+        "internship",
+        "interview",
+        "professional",
+        "networking",
+        "linkedin",
+        "job",
+    ],
+    "faith": [
+        "faith",
+        "church",
+        "worship",
+        "bible",
+        "prayer",
+        "spiritual",
+        "ministry",
+    ],
+    "community_service": [
+        "volunteer",
+        "service",
+        "donation",
+        "fundraiser",
+        "community cleanup",
+        "charity",
+    ],
+    "academic_support": [
+        "tutoring",
+        "study",
+        "academic",
+        "workshop",
+        "exam",
+        "homework",
+        "advising",
+    ],
+    "wellness": [
+        "wellness",
+        "mental health",
+        "health",
+        "counseling",
+        "mindfulness",
+        "fitness",
+        "self-care",
+    ],
+    "arts_culture": [
+        "art",
+        "music",
+        "dance",
+        "theater",
+        "culture",
+        "gallery",
+        "performance",
+    ],
+    "social": [
+        "social",
+        "mixer",
+        "hangout",
+        "game night",
+        "celebration",
+        "party",
+        "welcome",
+    ],
+}
+
+AI_BATCH_EVENT_LIMIT = int(os.getenv("AI_BATCH_EVENT_LIMIT", "8"))
+
 
 CLASSIFIER_SYSTEM_PROMPT = """
 You classify student events into one fixed category list.
 
 Rules:
 - Choose exactly one category from the allowed list.
+- Allowed categories: club_events, professional_development, faith, community_service, academic_support, wellness, arts_culture, social, other.
 - Do not invent new categories.
 - Base the choice on the event's overall purpose and theme.
 - Prioritize the description over the event title.
@@ -42,19 +118,32 @@ Rules:
 CATEGORY_SCHEMA = {
     "type": "object",
     "properties": {
-        "category": {
-            "type": "string",
-            "enum": EVENT_CATEGORIES,
-        },
-        "confidence": {
-            "type": "string",
-            "enum": ["high", "medium", "low"],
-        },
-        "reason": {
-            "type": "string",
+        "results": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "event_index": {
+                        "type": "integer",
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": EVENT_CATEGORIES,
+                    },
+                    "confidence": {
+                        "type": "string",
+                        "enum": ["high", "medium", "low"],
+                    },
+                    "reason": {
+                        "type": "string",
+                    },
+                },
+                "required": ["event_index", "category", "confidence", "reason"],
+                "additionalProperties": False,
+            },
         },
     },
-    "required": ["category", "confidence", "reason"],
+    "required": ["results"],
     "additionalProperties": False,
 }
 
@@ -66,6 +155,15 @@ def build_event_text(event):
         f"Time: {event.get('Time', '')}",
         f"Location: {event.get('Location', '')}",
     ]) 
+
+
+def use_ai_categorization():
+    return os.getenv("ENABLE_AI_EVENT_CATEGORIZATION", "true").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
 
 
 def get_openai_client():
@@ -88,20 +186,73 @@ def fallback_category_result():
     }
 
 
+def keyword_category_result(event):
+    searchable_text = " ".join(
+        [
+            str(event.get("Event Name", "")),
+            str(event.get("Description", "")),
+            str(event.get("Location", "")),
+        ]
+    ).lower()
+
+    best_category = "other"
+    best_score = 0
+
+    for category, keywords in KEYWORD_CATEGORY_RULES.items():
+        score = sum(1 for keyword in keywords if keyword in searchable_text)
+        if score > best_score:
+            best_category = category
+            best_score = score
+
+    confidence = "medium" if best_score > 0 else "low"
+    reason = (
+        "Matched the event against the local category keyword rules."
+        if best_score > 0
+        else "No strong local category match was found, so the event was placed in Other."
+    )
+
+    return {
+        "category": best_category,
+        "category_label": CATEGORY_LABELS[best_category],
+        "confidence": confidence,
+        "reason": reason,
+    }
+
+
 @lru_cache(maxsize=256)
-def classify_event_text(event_text):
+def classify_event_batch(event_texts):
+    if not use_ai_categorization():
+        return {}
+
+    if len(event_texts) > AI_BATCH_EVENT_LIMIT:
+        print(
+            "Skipping AI categorization because the event batch exceeds the configured limit."
+        )
+        return {}
+
     try:
         client = get_openai_client()
         response = client.responses.create(
             model="gpt-4o-mini",
             input=[
                 {"role": "system", "content": CLASSIFIER_SYSTEM_PROMPT},
-                {"role": "user", "content": event_text},
+                {
+                    "role": "user",
+                    "content": "\n\n".join(
+                        [
+                            "Classify each event and return one result for every event_index.",
+                            *[
+                                f"event_index: {index}\n{event_text}"
+                                for index, event_text in enumerate(event_texts)
+                            ],
+                        ]
+                    ),
+                },
             ],
             text={
                 "format": {
                     "type": "json_schema",
-                    "name": "event_category_result",
+                    "name": "event_category_batch_result",
                     "strict": True,
                     "schema": CATEGORY_SCHEMA,
                 }
@@ -109,27 +260,30 @@ def classify_event_text(event_text):
         )
 
         result = json.loads(response.output_text)
+        mapped_results = {}
 
-        return {
-            "category": result["category"],
-            "category_label": CATEGORY_LABELS[result["category"]],
-            "confidence": result["confidence"],
-            "reason": result["reason"],
-        }
+        for item in result.get("results", []):
+            category_key = item["category"]
+            mapped_results[item["event_index"]] = {
+                "category": category_key,
+                "category_label": CATEGORY_LABELS[category_key],
+                "confidence": item["confidence"],
+                "reason": item["reason"],
+            }
+
+        return mapped_results
     except Exception as e:
-        print(f"Error classifying event: {e}")
-        return fallback_category_result()
-
-
-def classify_event(event):
-    return classify_event_text(build_event_text(event))
+        print(f"Error classifying events: {e}")
+        return {}
 
 
 def group_events_by_category(events):
     grouped = OrderedDict((category, []) for category in EVENT_CATEGORIES)
+    event_texts = tuple(build_event_text(event) for event in events)
+    classified_results = classify_event_batch(event_texts) if event_texts else {}
 
-    for event in events:
-        category_result = classify_event(event)
+    for index, event in enumerate(events):
+        category_result = classified_results.get(index, keyword_category_result(event))
         enriched_event = dict(event)
         enriched_event["ai_category"] = category_result
         grouped[category_result["category"]].append(enriched_event)

@@ -67,6 +67,30 @@
             margin-bottom: 0.75rem;
             padding: 0.25rem 0.65rem;
         }
+        .verification-badge {
+            border-radius: 999px;
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+            padding: 0.3rem 0.7rem;
+        }
+        .verification-recent {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        .verification-warning {
+            background-color: #fff3cd;
+            color: #664d03;
+        }
+        .verification-stale {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+        .verification-unknown {
+            background-color: #e2e3e5;
+            color: #41464b;
+        }
         .is-hidden { display: none; }
     </style>
 </head>
@@ -108,6 +132,13 @@
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-white border-0 pt-3">
                             <small class="text-muted">Updated: {{ event['Last Updated'] }}</small>
+                            {% if event['verification_status'] is defined %}
+                            <div>
+                                <span class="verification-badge {{ event['verification_status']['class'] }}">
+                                    {{ event['verification_status']['label'] }}
+                                </span>
+                            </div>
+                            {% endif %}
                         </div>
                         <div class="card-body">
                             <span class="event-category-badge">{{ category.label }}</span>
@@ -142,6 +173,13 @@
                 <div class="card shadow-sm h-100">
                     <div class="card-header bg-white border-0 pt-3">
                         <small class="text-muted">Updated: {{ event['Last Updated'] }}</small>
+                        {% if event['verification_status'] is defined %}
+                        <div>
+                            <span class="verification-badge {{ event['verification_status']['class'] }}">
+                                {{ event['verification_status']['label'] }}
+                            </span>
+                        </div>
+                        {% endif %}
                     </div>
                     <div class="card-body">
                         {% if event['ai_category'] is defined and event['ai_category']['category_label'] is defined %}

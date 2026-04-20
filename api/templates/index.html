@@ -273,7 +273,56 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+const chatToggle = document.getElementById('chat-toggle');
+const chatWindow = document.getElementById('chat-window');
+const chatClose = document.getElementById('chat-close');
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+const chatMessages = document.getElementById('chat-messages');
+
+chatToggle.onclick = () => chatWindow.classList.toggle('d-none');
+chatClose.onclick = () => chatWindow.classList.add('d-none');
+
+chatSend.onclick = async () => {
+    const message = chatInput.value;
+    if (!message) return;
+
+    // Append user message
+    chatMessages.innerHTML += `<div class="mb-2"><strong>You:</strong> ${message}</div>`;
+    chatInput.value = '';
+
+    // Fetch from Flask
+    const response = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: message })
+    });
+    
+    const data = await response.json();
+    chatMessages.innerHTML += `<div class="mb-2 text-primary"><strong>AI:</strong> ${data.response}</div>`;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+};
 </script>
+
+<button id="chat-toggle" class="btn btn-primary rounded-circle shadow" style="position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; z-index: 1000;">
+    💬
+</button>
+
+<div id="chat-window" class="card shadow d-none" style="position: fixed; bottom: 90px; right: 20px; width: 350px; height: 450px; z-index: 1000;">
+    <div class="card-header bg-primary text-white d-flex justify-content-between">
+        <span>Event Assistant</span>
+        <button id="chat-close" class="btn-close btn-close-white"></button>
+    </div>
+    <div id="chat-messages" class="card-body overflow-auto" style="height: 300px; font-size: 0.9rem;">
+        <p class="text-muted small">Ask me about upcoming events!</p>
+    </div>
+    <div class="card-footer">
+        <div class="input-group">
+            <input type="text" id="chat-input" class="form-control" placeholder="Type a question...">
+            <button id="chat-send" class="btn btn-primary">Send</button>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

@@ -107,12 +107,12 @@ CLASSIFIER_SYSTEM_PROMPT = """
 You classify student events into one fixed category list.
 
 Rules:
-- Choose exactly one category from the allowed list.
+- Choose categories from the allowed list that match with each event,an event can match with multiple categories.
 - Allowed categories: club_events, professional_development, faith, community_service, academic_support, wellness, arts_culture, social, other.
 - Do not invent new categories.
 - Base the choice on the event's overall purpose and theme.
 - Prioritize the description over the event title.
-- If the category is unclear, choose "other".
+- If the category is unclear try to match it with other similar events and give it a category that it may fit under, otherwise it can be "other".
 """ 
 
 CATEGORY_SCHEMA = {

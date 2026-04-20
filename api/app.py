@@ -182,3 +182,37 @@ def index():
             ],
         ],
     )
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    user_query = request.json.get('message', '')
+    if not user_query:
+        return {"response": "I didn't catch that. What would you like to know?"}, 400
+
+    # 1. Get the latest data from your existing getEvents function
+    current_events = getEvents()
+    
+    # 2. Format that data into a string the AI can read
+    context_str = "Here are the current events:\n"
+    for e in current_events:
+        context_str += f"- {e.get('Event Name')}: {e.get('Description')} at {e.get('Location')} on {e.get('Date')}\n"
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": (
+                        "You are a helpful community assistant. "
+                        "Answer questions ONLY using the provided event context. "
+                        "If the answer isn't in the data, politely say you don't have information on that."
+                    )
+                },
+                {"role": "system", "content": f"CONTEXT: {context_str}"},
+                {"role": "user", "content": user_query}
+            ]
+        )
+        return {"response": response.choices[0].message.content}
+    except Exception as e:
+        return {"response": f"Sorry, I'm having trouble connecting to my brain. Error: {e}"}, 500

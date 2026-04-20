@@ -73,9 +73,9 @@ def enrich_events(events, lang='en'):
         )
 
         if lang == 'es':
-            fields_to_translate = ["Name","Description","Location"]
+            fields_to_translate = ["Event Name","Description","Location"]
             for field in fields_to_translate:
-                if field in event_record:
+                if event_record.get(field):
                     event_record[field] = translate_text(event_record[field],"Spanish")
 
         enriched_events.append(event_record)

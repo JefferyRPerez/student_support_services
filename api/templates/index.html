@@ -1,11 +1,5 @@
 <!DOCTYPE html>
-<div class="language-picker">
-    {% if current_lang == 'en' %}
-        <a href="/?lang=es" class="btn">Ver en Español</a>
-    {% else %}
-        <a href="/?lang=en" class="btn">View in English</a>
-    {% endif %}
-</div>
+<html lang = {{ current_lang }}>
 <head> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -103,8 +97,16 @@
 <body>
 
 <nav class="navbar navbar-dark bg-dark mb-4">
-    <div class="container">
+    <div class="container d-flex justify-content-between align-items-center">
         <span class="navbar-brand mb-0 h1">Event Tracker</span>
+
+        <div class = "language-picker">
+            {% if current_lang == 'en' %}
+                <a href="/?lang=es" class="btn btn-sm btn-outline-light">Ver en Español</a>
+            {% else %}
+                <a href="/?lang=en" class="btn btn-sm btn-outline-light">View in English</a>
+            {% endif %}   
+        </div> 
     </div>
 </nav>
 

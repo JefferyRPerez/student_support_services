@@ -1,5 +1,5 @@
 import pandas as pd
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 import io
 import requests
 import sys
@@ -8,6 +8,7 @@ from pathlib import Path
 from openai import OpenAI 
 import os
 
+app = Flask(__name__)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY","").strip())  
 
 CURRENT_DIR = Path(__file__).resolve().parent
@@ -15,8 +16,6 @@ if str(CURRENT_DIR) not in sys.path:
     sys.path.append(str(CURRENT_DIR))
 
 from event_classifier import CATEGORY_LABELS, EVENT_CATEGORIES, group_events_by_category
-
-app = Flask(__name__)
 
 # Replace this with the URL you copied from 'Publish to Web'
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1K-VlChD1zeeOGQGxI97GqcyAWAEd3FrEQQVUZSn8uYs/export?format=csv"
@@ -26,16 +25,16 @@ def translate_text(text,target_language="Spanish"):
         return ""
 
     try:
-        response = client.chat.completations.create(
+        response = client.chat.completions.create(
             model="gpt-4o-mini", 
             messages=[
-                {"role": "system", "content": f"You are a professional translator. Translate the following text to {target_language}. Maintain the tone and formatting. RETURN ONLY THE TRANSLATE TEXT"} 
+                {"role": "system", "content": f"You are a professional translator. Translate the following text to {target_language}. Maintain the tone and formatting. RETURN ONLY THE TRANSLATE TEXT"}, 
                 {"role": "user", "content": text}
             ]
         )
         return response.choices[0].message.content.strip() 
     except Exception as e:
-        printf(f"Translation Error: {e}") 
+        print(f"Translation Error: {e}") 
         return text # If failure fall back to original text 
 
 def get_verification_status(last_updated_value):

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from openai import OpenAI 
 import os
+import json 
 
 app = Flask(__name__)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY","").strip())  
@@ -62,28 +63,66 @@ def get_verification_status(last_updated_value):
         "class": "verification-stale",
     }
 
-
 translation_cache = {}
 
 def enrich_events(events, lang='en'):
+    if not events:
+        return []
+
+    # 1. ALWAYS calculate verification status first
     enriched_events = []
-    
     for event in events:
         event_record = dict(event)
-        # ... (verification status code) ...
-
-        if lang == 'es':
-            fields = ["Event Name", "Description", "Location"]
-            for field in fields:
-                original_text = event_record.get(field, "")
-                if original_text:
-                    # Check if we already translated this specific string
-                    if original_text not in translation_cache:
-                        translation_cache[original_text] = translate_text(original_text, "Spanish")
-                    
-                    event_record[field] = translation_cache[original_text]
-
+        event_record["verification_status"] = get_verification_status(
+            event.get("Last Updated", "")
+        )
         enriched_events.append(event_record)
+
+    # 2. If it's English, we are done!
+    if lang != 'es':
+        return enriched_events
+
+    # 3. If Spanish, check cache or translate in ONE batch
+    # We create a 'fingerprint' of the first event to see if we've translated this sheet recently
+    cache_key = f"sheet_es_{len(events)}_{events[0].get('Event Name')}"
+    if cache_key in translation_cache:
+        return translation_cache[cache_key]
+
+    try:
+        # Prepare data for OpenAI - only send necessary fields to save tokens
+        minimal_events = [
+            {"name": e.get("Event Name"), "desc": e.get("Description"), "loc": e.get("Location")} 
+            for e in enriched_events
+        ]
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a professional translator. Translate this list of event objects into Spanish. Return ONLY a valid JSON array of objects with keys 'name', 'desc', and 'loc'."},
+                {"role": "user", "content": json.dumps(minimal_events)}
+            ],
+            response_format={ "type": "json_object" } # Ensures OpenAI sends back valid JSON
+        )
+
+        # Parse the AI response
+        translated_data = json.loads(response.choices[0].message.content)
+        # Note: Depending on AI response structure, you might need to access a key like translated_data['events']
+        # For simplicity, let's assume it returns {"events": [...]}
+        t_list = translated_data.get('events', []) if isinstance(translated_data, dict) else translated_data
+
+        # Merge translations back into our enriched_events
+        for i, translated_item in enumerate(t_list):
+            if i < len(enriched_events):
+                enriched_events[i]["Event Name"] = translated_item.get("name")
+                enriched_events[i]["Description"] = translated_item.get("desc")
+                enriched_events[i]["Location"] = translated_item.get("loc")
+
+        # Save to cache so the next click is instant
+        translation_cache[cache_key] = enriched_events
+        
+    except Exception as e:
+        print(f"Batch Translation Error: {e}")
+
     return enriched_events
 
 def getEvents():

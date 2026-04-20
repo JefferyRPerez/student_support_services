@@ -69,7 +69,7 @@ def enrich_events(events, lang='en'):
     if not events:
         return []
 
-    # 1. ALWAYS calculate verification status first
+    # 1. ALWAYS calculate verification status first (Fixes your disappearing badges)
     enriched_events = []
     for event in events:
         event_record = dict(event)
@@ -78,50 +78,55 @@ def enrich_events(events, lang='en'):
         )
         enriched_events.append(event_record)
 
-    # 2. If it's English, we are done!
+    # 2. If it's English, stop here.
     if lang != 'es':
         return enriched_events
 
-    # 3. If Spanish, check cache or translate in ONE batch
-    # We create a 'fingerprint' of the first event to see if we've translated this sheet recently
-    cache_key = f"sheet_es_{len(events)}_{events[0].get('Event Name')}"
+    # 3. Check Cache
+    cache_key = f"sheet_es_{len(events)}"
     if cache_key in translation_cache:
+        print("DEBUG: Loading from cache")
         return translation_cache[cache_key]
 
     try:
-        # Prepare data for OpenAI - only send necessary fields to save tokens
-        minimal_events = [
-            {"name": e.get("Event Name"), "desc": e.get("Description"), "loc": e.get("Location")} 
-            for e in enriched_events
+        print("DEBUG: Starting Batch Translation...")
+        # Prepare the list for OpenAI
+        to_translate = [
+            {"id": i, "name": e.get("Event Name", ""), "desc": e.get("Description", "")} 
+            for i, e in enumerate(enriched_events)
         ]
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a professional translator. Translate this list of event objects into Spanish. Return ONLY a valid JSON array of objects with keys 'name', 'desc', and 'loc'."},
-                {"role": "user", "content": json.dumps(minimal_events)}
+                {"role": "system", "content": "You are a professional translator. Translate the 'name' and 'desc' fields to Spanish. Return ONLY a JSON object with a key 'translations' containing the array of objects. Maintain the 'id' for each."},
+                {"role": "user", "content": json.dumps(to_translate)}
             ],
-            response_format={ "type": "json_object" } # Ensures OpenAI sends back valid JSON
+            response_format={ "type": "json_object" }
         )
 
-        # Parse the AI response
-        translated_data = json.loads(response.choices[0].message.content)
-        # Note: Depending on AI response structure, you might need to access a key like translated_data['events']
-        # For simplicity, let's assume it returns {"events": [...]}
-        t_list = translated_data.get('events', []) if isinstance(translated_data, dict) else translated_data
+        # Parse AI response
+        raw_content = response.choices[0].message.content
+        data = json.loads(raw_content)
+        
+        # OpenAI usually wraps the list in a key (e.g., {"translations": [...]})
+        # We need to get that list.
+        t_list = data.get('translations', [])
 
-        # Merge translations back into our enriched_events
-        for i, translated_item in enumerate(t_list):
-            if i < len(enriched_events):
-                enriched_events[i]["Event Name"] = translated_item.get("name")
-                enriched_events[i]["Description"] = translated_item.get("desc")
-                enriched_events[i]["Location"] = translated_item.get("loc")
+        # 4. MERGE logic (Matching by the ID we sent)
+        for t_item in t_list:
+            idx = t_item.get("id")
+            if idx is not None and idx < len(enriched_events):
+                enriched_events[idx]["Event Name"] = t_item.get("name")
+                enriched_events[idx]["Description"] = t_item.get("desc")
+                # Location is usually a name/address, but you can add it if needed
 
-        # Save to cache so the next click is instant
+        # Save to cache
         translation_cache[cache_key] = enriched_events
+        print("DEBUG: Translation Successful")
         
     except Exception as e:
-        print(f"Batch Translation Error: {e}")
+        print(f"DEBUG: Translation Error: {e}")
 
     return enriched_events
 

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang = {{ current_lang }}>
-<head> 
+<html lang="{{ current_lang }}">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Community Event Tracker</title>
@@ -30,68 +30,21 @@
             padding: 0.5rem 1rem;
             transition: all 0.2s ease;
         }
-        .filter-chip:hover,
-        .filter-chip:focus {
-            border-color: #212529;
-            color: #212529;
-            outline: none;
-        }
-        .filter-chip.is-active {
-            background-color: #212529;
-            border-color: #212529;
-            color: #fff;
-        }
-        .category-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            margin-bottom: 1.25rem;
-        }
-        .category-title { margin: 0; }
-        .category-count {
-            background-color: #212529;
-            color: #fff;
-            border-radius: 999px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 0.35rem 0.75rem;
-        }
-        .event-category-badge {
-            display: inline-block;
-            background-color: #e9ecef;
-            color: #495057;
-            border-radius: 999px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-            padding: 0.25rem 0.65rem;
-        }
-        .verification-badge {
-            border-radius: 999px;
-            display: inline-block;
-            font-size: 0.75rem;
-            font-weight: 700;
-            margin-top: 0.5rem;
-            padding: 0.3rem 0.7rem;
-        }
-        .verification-recent {
-            background-color: #d1e7dd;
-            color: #0f5132;
-        }
-        .verification-warning {
-            background-color: #fff3cd;
-            color: #664d03;
-        }
-        .verification-stale {
-            background-color: #f8d7da;
-            color: #842029;
-        }
-        .verification-unknown {
-            background-color: #e2e3e5;
-            color: #41464b;
-        }
+        .filter-chip:hover { border-color: #212529; color: #212529; }
+        .filter-chip.is-active { background-color: #212529; border-color: #212529; color: #fff; }
+        .category-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+        .category-count { background-color: #212529; color: #fff; border-radius: 999px; font-size: 0.85rem; padding: 0.35rem 0.75rem; }
+        .event-category-badge { background-color: #e9ecef; color: #495057; border-radius: 999px; font-size: 0.8rem; font-weight: 600; padding: 0.25rem 0.65rem; }
+        .verification-badge { border-radius: 999px; display: inline-block; font-size: 0.75rem; font-weight: 700; margin-top: 0.5rem; padding: 0.3rem 0.7rem; }
+        .verification-recent { background-color: #d1e7dd; color: #0f5132; }
+        .verification-warning { background-color: #fff3cd; color: #664d03; }
+        .verification-stale { background-color: #f8d7da; color: #842029; }
         .is-hidden { display: none; }
+        
+        /* Chat Styling */
+        #chat-window { width: 350px; height: 450px; transition: all 0.3s ease; }
+        #chat-messages::-webkit-scrollbar { width: 5px; }
+        #chat-messages::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -99,48 +52,43 @@
 <nav class="navbar navbar-dark bg-dark mb-4">
     <div class="container d-flex justify-content-between align-items-center">
         <span class="navbar-brand mb-0 h1">Event Tracker</span>
-
-        <div class = "language-picker">
+        <div class="language-picker">
             {% if current_lang == 'en' %}
                 <a href="/?lang=es" class="btn btn-sm btn-outline-light">Ver en Español</a>
             {% else %}
                 <a href="/?lang=en" class="btn btn-sm btn-outline-light">View in English</a>
-            {% endif %}   
-        </div> 
+            {% endif %}
+        </div>
     </div>
 </nav>
 
 <div class="container py-5">
-    <h1 class="mb-4 text-center">Current Events</h1>
+    <h1 class="mb-4 text-center">{{ "Current Events" if current_lang == 'en' else "Eventos Actuales" }}</h1>
 
     {% if category_filters is defined and category_filters|length > 1 %}
-    <div class="category-filters" aria-label="Filter events by category">
+    <div class="category-filters">
         {% for filter in category_filters %}
-        <button
-            type="button"
-            class="filter-chip{% if filter.key == 'all' %} is-active{% endif %}"
-            data-filter="{{ filter.key }}">
+        <button type="button" class="filter-chip{% if filter.key == 'all' %} is-active{% endif %}" data-filter="{{ filter.key }}">
             {{ filter.label }}
         </button>
         {% endfor %}
     </div>
     {% endif %}
 
-    {% if categories is defined and categories %}
+    {% if categories %}
         {% for category in categories %}
         <section class="category-section" data-category="{{ category.key }}">
             <div class="category-header">
-                <h2 class="h4 category-title">{{ category.label }}</h2>
-                <span class="category-count">{{ category.count }} event{{ '' if category.count == 1 else 's' }}</span>
+                <h2 class="h4">{{ category.label }}</h2>
+                <span class="category-count">{{ category.count }}</span>
             </div>
-
             <div class="row">
                 {% for event in category.events %}
-                <div class="col-md-6 col-lg-4 mb-4" data-category-card="{{ category.key }}">
+                <div class="col-md-6 col-lg-4 mb-4">
                     <div class="card shadow-sm h-100">
                         <div class="card-header bg-white border-0 pt-3">
                             <small class="text-muted">Updated: {{ event['Last Updated'] }}</small>
-                            {% if event['verification_status'] is defined %}
+                            {% if event['verification_status'] %}
                             <div>
                                 <span class="verification-badge {{ event['verification_status']['class'] }}">
                                     {{ event['verification_status']['label'] }}
@@ -155,15 +103,9 @@
                             <hr>
                             <div class="small">
                                 <p class="mb-1"><strong>📅 Date:</strong> {{ event['Date'] }}</p>
-                                <p class="mb-1"><strong>⏰ Time:</strong> {{ event['Time'] }}</p>
-                                <p class="mb-1">
-                                    <strong>📍 Location:</strong>
-                                    <a href="#"
-                                       class="text-decoration-underline map-link"
-                                       data-bs-toggle="modal"
-                                       data-bs-target="#mapModal"
-                                       data-address="{{ event['Location'] }}">
-                                       {{ event['Location'] }}
+                                <p class="mb-1"><strong>📍 Location:</strong> 
+                                    <a href="#" class="map-link" data-bs-toggle="modal" data-bs-target="#mapModal" data-address="{{ event['Location'] }}">
+                                        {{ event['Location'] }}
                                     </a>
                                 </p>
                             </div>
@@ -174,54 +116,8 @@
             </div>
         </section>
         {% endfor %}
-    {% elif events %}
-        <div class="row">
-            {% for event in events %}
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-white border-0 pt-3">
-                        <small class="text-muted">Updated: {{ event['Last Updated'] }}</small>
-                        {% if event['verification_status'] is defined %}
-                        <div>
-                            <span class="verification-badge {{ event['verification_status']['class'] }}">
-                                {{ event['verification_status']['label'] }}
-                            </span>
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="card-body">
-                        {% if event['ai_category'] is defined and event['ai_category']['category_label'] is defined %}
-                        <span class="event-category-badge">{{ event['ai_category']['category_label'] }}</span>
-                        {% endif %}
-                        <h5 class="card-title text-primary">{{ event['Event Name'] }}</h5>
-                        <p class="card-text text-secondary">{{ event['Description'] }}</p>
-                        <hr>
-                        <div class="small">
-                            <p class="mb-1"><strong>📅 Date:</strong> {{ event['Date'] }}</p>
-                            <p class="mb-1"><strong>⏰ Time:</strong> {{ event['Time'] }}</p>
-                            <p class="mb-1">
-                                <strong>📍 Location:</strong>
-                                <a href="#"
-                                   class="text-decoration-underline map-link"
-                                   data-bs-toggle="modal"
-                                   data-bs-target="#mapModal"
-                                   data-address="{{ event['Location'] }}">
-                                   {{ event['Location'] }}
-                                </a>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
     {% else %}
-        <div class="row">
-            <div class="col-12 text-center py-5">
-                <h3>No Events Found</h3>
-                <p class="text-muted">The Excel file appears to be empty or was not found.</p>
-            </div>
-        </div>
+        <div class="text-center py-5"><h3>No events found.</h3></div>
     {% endif %}
 </div>
 
@@ -230,99 +126,93 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Event Map</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
-                <iframe id="mapFrame" width="100%" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                <iframe id="mapFrame" width="100%" height="450" style="border:0;" loading="lazy"></iframe>
             </div>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const mapLinks = document.querySelectorAll('.map-link');
-    const mapFrame = document.getElementById('mapFrame');
-    const filterButtons = document.querySelectorAll('[data-filter]');
-    const categorySections = document.querySelectorAll('[data-category]');
-
-    mapLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            const address = this.getAttribute('data-address');
-            const encodedAddress = encodeURIComponent(address);
-            // Updated Google Maps Embed URL
-            mapFrame.src = `https://maps.google.com/maps?q=${encodedAddress}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
-        });
-    });
-
-    filterButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const selectedFilter = this.getAttribute('data-filter');
-
-            filterButtons.forEach(chip => {
-                chip.classList.toggle('is-active', chip === this);
-            });
-
-            categorySections.forEach(section => {
-                const sectionCategory = section.getAttribute('data-category');
-                const shouldShow = selectedFilter === 'all' || sectionCategory === selectedFilter;
-                section.classList.toggle('is-hidden', !shouldShow);
-            });
-        });
-    });
-});
-const chatToggle = document.getElementById('chat-toggle');
-const chatWindow = document.getElementById('chat-window');
-const chatClose = document.getElementById('chat-close');
-const chatInput = document.getElementById('chat-input');
-const chatSend = document.getElementById('chat-send');
-const chatMessages = document.getElementById('chat-messages');
-
-chatToggle.onclick = () => chatWindow.classList.toggle('d-none');
-chatClose.onclick = () => chatWindow.classList.add('d-none');
-
-chatSend.onclick = async () => {
-    const message = chatInput.value;
-    if (!message) return;
-
-    // Append user message
-    chatMessages.innerHTML += `<div class="mb-2"><strong>You:</strong> ${message}</div>`;
-    chatInput.value = '';
-
-    // Fetch from Flask
-    const response = await fetch('/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: message })
-    });
-    
-    const data = await response.json();
-    chatMessages.innerHTML += `<div class="mb-2 text-primary"><strong>AI:</strong> ${data.response}</div>`;
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-};
-</script>
-
-<button id="chat-toggle" class="btn btn-primary rounded-circle shadow" style="position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; z-index: 1000;">
+<button id="chat-toggle" class="btn btn-primary rounded-circle shadow" style="position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; z-index: 2000;">
     💬
 </button>
 
-<div id="chat-window" class="card shadow d-none" style="position: fixed; bottom: 90px; right: 20px; width: 350px; height: 450px; z-index: 1000;">
+<div id="chat-window" class="card shadow d-none" style="position: fixed; bottom: 90px; right: 20px; z-index: 2000;">
     <div class="card-header bg-primary text-white d-flex justify-content-between">
         <span>Event Assistant</span>
         <button id="chat-close" class="btn-close btn-close-white"></button>
     </div>
     <div id="chat-messages" class="card-body overflow-auto" style="height: 300px; font-size: 0.9rem;">
-        <p class="text-muted small">Ask me about upcoming events!</p>
+        <p class="text-muted small">Ask me anything about these events!</p>
     </div>
-    <div class="card-footer">
+    <div class="card-footer bg-white">
         <div class="input-group">
-            <input type="text" id="chat-input" class="form-control" placeholder="Type a question...">
+            <input type="text" id="chat-input" class="form-control" placeholder="Type here...">
             <button id="chat-send" class="btn btn-primary">Send</button>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter Logic
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    const categorySections = document.querySelectorAll('[data-category]');
+    filterButtons.forEach(btn => {
+        btn.onclick = () => {
+            const filter = btn.dataset.filter;
+            filterButtons.forEach(b => b.classList.toggle('is-active', b === btn));
+            categorySections.forEach(s => s.classList.toggle('is-hidden', filter !== 'all' && s.dataset.category !== filter));
+        };
+    });
+
+    // Map Logic
+    const mapFrame = document.getElementById('mapFrame');
+    document.querySelectorAll('.map-link').forEach(link => {
+        link.onclick = () => {
+            const addr = encodeURIComponent(link.dataset.address);
+            mapFrame.src = `https://maps.google.com/maps?q=${addr}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+        };
+    });
+
+    // Chat Logic
+    const toggle = document.getElementById('chat-toggle');
+    const win = document.getElementById('chat-window');
+    const close = document.getElementById('chat-close');
+    const input = document.getElementById('chat-input');
+    const send = document.getElementById('chat-send');
+    const msgs = document.getElementById('chat-messages');
+
+    toggle.onclick = () => win.classList.toggle('d-none');
+    close.onclick = () => win.classList.add('d-none');
+
+    send.onclick = async () => {
+        const val = input.value.trim();
+        if(!val) return;
+        msgs.innerHTML += `<div class="mb-2 text-end"><strong>You:</strong><br>${val}</div>`;
+        input.value = '';
+        
+        try {
+            const res = await fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: val})
+            });
+            const data = await res.json();
+            msgs.innerHTML += `<div class="mb-2"><strong>Assistant:</strong><br>${data.response}</div>`;
+            msgs.scrollTop = msgs.scrollHeight;
+        } catch(e) {
+            msgs.innerHTML += `<div class="text-danger small">Error connecting to assistant.</div>`;
+        }
+    };
+
+    // Allow Enter key to send message
+    input.onkeypress = (e) => { if(e.key === 'Enter') send.click(); };
+});
+</script>
 
 </body>
 </html>

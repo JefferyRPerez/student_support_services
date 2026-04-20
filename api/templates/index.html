@@ -1,6 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<div class="language-picker">
+    {% if current_lang == 'en' %}
+        <a href="/?lang=es" class="btn">Ver en Español</a>
+    {% else %}
+        <a href="/?lang=en" class="btn">View in English</a>
+    {% endif %}
+</div>
+<head> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Community Event Tracker</title>

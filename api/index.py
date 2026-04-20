@@ -5,6 +5,10 @@ import requests
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from openai import OpenAI 
+import os
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY","").strip())  
 
 CURRENT_DIR = Path(__file__).resolve().parent
 if str(CURRENT_DIR) not in sys.path:
@@ -17,6 +21,22 @@ app = Flask(__name__)
 # Replace this with the URL you copied from 'Publish to Web'
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1K-VlChD1zeeOGQGxI97GqcyAWAEd3FrEQQVUZSn8uYs/export?format=csv"
 
+def translate_text(text,target_language="Spanish"):
+    if not text or pd.isna(text) or text == '':
+        return ""
+
+    try:
+        response = client.chat.completations.create(
+            model="gpt-4o-mini", 
+            messages=[
+                {"role": "system", "content": f"You are a professional translator. Translate the following text to {target_language}. Maintain the tone and formatting. RETURN ONLY THE TRANSLATE TEXT"} 
+                {"role": "user", "content": text}
+            ]
+        )
+        return response.choices[0].message.content.strip() 
+    except Exception as e:
+        printf(f"Translation Error: {e}") 
+        return text # If failure fall back to original text 
 
 def get_verification_status(last_updated_value):
     parsed_date = pd.to_datetime(last_updated_value, errors='coerce')
@@ -44,7 +64,7 @@ def get_verification_status(last_updated_value):
     }
 
 
-def enrich_events(events):
+def enrich_events(events, lang='en'):
     enriched_events = []
 
     for event in events:
@@ -52,6 +72,13 @@ def enrich_events(events):
         event_record["verification_status"] = get_verification_status(
             event.get("Last Updated", "")
         )
+
+        if lang == 'es':
+            fields_to_translate = ["Name","Description","Location"]
+            for field in fields_to_translate:
+                if field in event_record:
+                    event_record[field] = translate_text(event_record[field],"Spanish")
+
         enriched_events.append(event_record)
 
     return enriched_events
@@ -74,6 +101,9 @@ def getEvents():
 
 @app.route('/')
 def index():
+
+    lang = request.args.get('lang','en')
+
     all_events = enrich_events(getEvents())
     visible_categories = []
 
@@ -96,6 +126,7 @@ def index():
         'index.html',
         events=all_events,
         categories=visible_categories,
+        current_lang=lang,
         category_filters=[
             {"key": "all", "label": "All Categories"},
             *[

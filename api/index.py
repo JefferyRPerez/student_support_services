@@ -15,7 +15,7 @@ from event_classifier import CATEGORY_LABELS, EVENT_CATEGORIES, group_events_by_
 app = Flask(__name__)
 
 # Replace this with the URL you copied from 'Publish to Web'
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTUHsbsw4bC_qbSz23COuzJrsfH7vF7K1yZEbgo2d35ohbzTRYO3fAHilgfRx9xUQ/pub?output=csv"
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1K-VlChD1zeeOGQGxI97GqcyAWAEd3FrEQQVUZSn8uYs/export?format=csv"
 
 
 def get_verification_status(last_updated_value):

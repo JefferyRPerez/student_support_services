@@ -63,23 +63,27 @@ def get_verification_status(last_updated_value):
     }
 
 
+translation_cache = {}
+
 def enrich_events(events, lang='en'):
     enriched_events = []
-
+    
     for event in events:
         event_record = dict(event)
-        event_record["verification_status"] = get_verification_status(
-            event.get("Last Updated", "")
-        )
+        # ... (verification status code) ...
 
         if lang == 'es':
-            fields_to_translate = ["Event Name","Description","Location"]
-            for field in fields_to_translate:
-                if event_record.get(field):
-                    event_record[field] = translate_text(event_record[field],"Spanish")
+            fields = ["Event Name", "Description", "Location"]
+            for field in fields:
+                original_text = event_record.get(field, "")
+                if original_text:
+                    # Check if we already translated this specific string
+                    if original_text not in translation_cache:
+                        translation_cache[original_text] = translate_text(original_text, "Spanish")
+                    
+                    event_record[field] = translation_cache[original_text]
 
         enriched_events.append(event_record)
-
     return enriched_events
 
 def getEvents():

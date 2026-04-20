@@ -103,7 +103,7 @@ def index():
 
     lang = request.args.get('lang','en')
 
-    all_events = enrich_events(getEvents())
+    all_events = enrich_events(getEvents(),lang=lang)
     visible_categories = []
 
     try:

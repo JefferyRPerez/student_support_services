@@ -1,41 +1,33 @@
-import sqlite3
-import json 
-from pathlib import Path
+import json
+import os
 
-DB_PATH = Path(__file__).parent / "events_cache.db" 
-
-def get_connection():
-    conn = sqlite3.connect(DB_PATH) 
-    conn.row_factory = sqlite3.Row
-    return conn 
+def get_redis():
+    from upstash_redis import Redis
+    return Redis(
+        url=os.getenv("UPSTASH_REDIS_REST_URL"),
+        token=os.getenv("UPSTASH_REDIS_REST_TOKEN")
+    )
 
 def init_db():
-    with get_connection() as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS events_cache (
-                id INTEGER PRIMARY KEY,
-                data_hash TEXT NOT NULL UNIQUE,
-                raw_events TEXT NOT NULL,
-                classified_events TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        conn.commit() 
+    pass  # no setup needed
 
 def get_cached_events(data_hash):
-    with get_connection() as conn:
-        row = conn.execute(
-            "SELECT classified_events FROM events_cache WHERE data_hash = ?",
-            (data_hash,)
-        ).fetchone()
-        return json.loads(row["classified_events"]) if row else None 
+    try:
+        r = get_redis()
+        cached = r.get(f"events:{data_hash}")
+        return json.loads(cached) if cached else None
+    except Exception as e:
+        print(f"Cache read error: {e}")
+        return None
 
 def save_cached_events(data_hash, raw_events, classified_events):
-    with get_connection() as conn:
-        conn.execute("DELETE FROM events_cache")  # only keep latest
-        conn.execute(
-            """INSERT INTO events_cache (data_hash, raw_events, classified_events)
-               VALUES (?, ?, ?)""",
-            (data_hash, json.dumps(raw_events), json.dumps(classified_events))
-        )
-        conn.commit()
+    try:
+        r = get_redis()
+        # Get all keys and delete old cache
+        old_keys = r.keys("events:*")
+        if old_keys:
+            r.delete(*old_keys)
+        # Save new cache — expires in 24 hours just in case
+        r.set(f"events:{data_hash}", json.dumps(classified_events), ex=86400)
+    except Exception as e:
+        print(f"Cache write error: {e}")

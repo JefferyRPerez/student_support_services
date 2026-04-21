@@ -170,7 +170,7 @@ def index():
         print("DEBUG: New Data is Detected Running Classification") 
         all_events = enrich_events(raw_events,lang=lang)
         grouped_events = group_events_by_category(all_events)
-        save_cached_events(data_hash, raw_events, all_events)
+        saved_cached_events(data_hash, raw_events, all_events)
     else:
         all_events = raw_events 
         grouped_events = group_events_by_category(all_events) 

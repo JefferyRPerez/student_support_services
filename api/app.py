@@ -211,7 +211,7 @@ def chat():
         return {"response": "I didn't catch that. What would you like to know?"}, 400
 
     # 1. Get the latest data from your existing getEvents function
-    current_events = getEvents()
+    current_events, _ = getEvents()
     
     # 2. Format that data into a string the AI can read
     context_str = "Here are the current events:\n"

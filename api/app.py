@@ -7,8 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from openai import OpenAI 
 import os
-import json 
+import json
+import hashlib 
+from databse import init_db, get_cached_events, saved_cached_events
 
+init_db() 
 app = Flask(__name__)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY","").strip())  
 
@@ -20,6 +23,9 @@ from event_classifier import CATEGORY_LABELS, EVENT_CATEGORIES, group_events_by_
 
 # Replace this with the URL you copied from 'Publish to Web'
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1K-VlChD1zeeOGQGxI97GqcyAWAEd3FrEQQVUZSn8uYs/export?format=csv"
+
+def hash_events(raw_csv_text):
+    return hashlib.md5(raw_csv_text.encode()).hexdigest()
 
 def translate_text(text,target_language="Spanish"):
     if not text or pd.isna(text) or text == '':
@@ -135,13 +141,21 @@ def getEvents():
         # Fetch the data from Google Sheets
         response = requests.get(SHEET_CSV_URL, timeout=15)
         response.raise_for_status() # Check if the link is working
+        raw_text = response.text 
+        data_hash = hash_events(raw_text) 
         
+        cached = get_cached_events(data_hash) 
+        if cached:
+            print("DEBUG: Serving from DB Cache no API Calls Needed")
+            return cached,False 
+
         # Turn the text into a format Pandas understands
         df = pd.read_csv(io.StringIO(response.text))
         
         df = df.fillna('')
         df.columns = [str(c).strip() for c in df.columns]
-        return df.to_dict(orient='records')
+        raw_events = df.to_dict(orient='records') 
+        return raw_events, data_hash 
     except Exception as e:
         print(f"Error fetching from Google Sheets: {e}")
         return []
@@ -149,25 +163,29 @@ def getEvents():
 @app.route('/')
 def index():
 
-    lang = request.args.get('lang','en')
+    lang = request.args.get('lang','en') 
+    raw_events, data_hash = getEvents() 
 
-    all_events = enrich_events(getEvents(),lang=lang)
-    visible_categories = []
-
-    try:
+    if data_hash:
+        print("DEBUG: New Data is Detected Running Classification") 
+        all_events = enrich_events(raw_events,lang=lang)
         grouped_events = group_events_by_category(all_events)
-        visible_categories = [
-            {
-                "key": key,
-                "label": CATEGORY_LABELS[key],
-                "events": grouped_events[key],
-                "count": len(grouped_events[key]),
-            }
-            for key in EVENT_CATEGORIES
-            if grouped_events[key]
-        ]
-    except Exception as e:
-        print(f"Error grouping events by category: {e}")
+        save_cached_events(data_hash, raw_events, all_events)
+    else:
+        all_events = raw_events 
+        grouped_events = group_events_by_category(all_events) 
+
+
+    visible_categories = [
+        {
+            "key": key,
+            "label": CATEGORY_LABELS[key],
+            "events": grouped_events[key],
+            "count": len(grouped_events[key]),
+        }
+        for key in EVENT_CATEGORIES
+        if grouped_events[key]
+    ]
 
     return render_template(
         'index.html',

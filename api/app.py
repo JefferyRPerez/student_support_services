@@ -9,7 +9,10 @@ from openai import OpenAI
 import os
 import json
 import hashlib 
-from database import init_db, get_cached_events, saved_cached_events
+
+sys.path.insert(0, str(Path(__file__).parent))
+
+from database import init_db, get_cached_events, save_cached_events
 
 init_db() 
 app = Flask(__name__)
@@ -170,7 +173,7 @@ def index():
         print("DEBUG: New Data is Detected Running Classification") 
         all_events = enrich_events(raw_events,lang=lang)
         grouped_events = group_events_by_category(all_events)
-        saved_cached_events(data_hash, raw_events, all_events)
+        save_cached_events(data_hash, raw_events, all_events)
     else:
         all_events = raw_events 
         grouped_events = group_events_by_category(all_events) 

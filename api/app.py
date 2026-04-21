@@ -9,7 +9,7 @@ from openai import OpenAI
 import os
 import json
 import hashlib 
-from databse import init_db, get_cached_events, saved_cached_events
+from database import init_db, get_cached_events, saved_cached_events
 
 init_db() 
 app = Flask(__name__)

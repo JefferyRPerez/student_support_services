@@ -4,128 +4,817 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Community Event Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; }
-        .card { transition: transform 0.2s; border: none; }
-        .card:hover { transform: translateY(-5px); }
-        .map-link { cursor: pointer; text-decoration: none; font-weight: bold; }
-        .category-section + .category-section { margin-top: 3rem; }
+        :root {
+            --bg: #f6f1e7;
+            --surface: rgba(255, 252, 247, 0.88);
+            --surface-strong: #fffaf2;
+            --text: #1f2933;
+            --muted: #5d6b78;
+            --line: rgba(60, 79, 99, 0.14);
+            --brand: #0f766e;
+            --brand-deep: #0b4f4a;
+            --accent: #d97706;
+            --accent-soft: rgba(217, 119, 6, 0.14);
+            --shadow: 0 22px 50px rgba(23, 40, 56, 0.12);
+            --radius-xl: 28px;
+            --radius-lg: 22px;
+            --radius-md: 18px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 32%),
+                radial-gradient(circle at 85% 20%, rgba(217, 119, 6, 0.18), transparent 24%),
+                linear-gradient(180deg, #fcf7ef 0%, #f4efe4 45%, #efe7da 100%);
+            font-family: "Manrope", sans-serif;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+            background-size: 38px 38px;
+            mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent 85%);
+        }
+
+        h1, h2, h3, h4, h5, .brand-mark {
+            font-family: "Fraunces", serif;
+            letter-spacing: -0.02em;
+        }
+
+        .site-shell {
+            position: relative;
+            padding: 1.25rem 0 5rem;
+        }
+
+        .topbar {
+            margin-bottom: 2rem;
+        }
+
+        .topbar-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            background: rgba(18, 33, 44, 0.74);
+            backdrop-filter: blur(18px);
+            border-radius: 999px;
+            box-shadow: 0 14px 34px rgba(17, 24, 39, 0.18);
+        }
+
+        .brand-block {
+            display: flex;
+            align-items: center;
+            gap: 0.95rem;
+        }
+
+        .brand-glyph {
+            width: 46px;
+            height: 46px;
+            display: grid;
+            place-items: center;
+            border-radius: 16px;
+            color: #fff8ee;
+            font-size: 1.25rem;
+            background: linear-gradient(135deg, #0f766e, #115e59 55%, #d97706);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        }
+
+        .brand-mark {
+            margin: 0;
+            color: #fffdf8;
+            font-size: 1.15rem;
+        }
+
+        .brand-copy {
+            margin: 0;
+            color: rgba(255, 249, 240, 0.72);
+            font-size: 0.9rem;
+        }
+
+        .lang-toggle {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 999px;
+            padding: 0.7rem 1rem;
+            color: #fff7ee;
+            text-decoration: none;
+            font-weight: 700;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .lang-toggle:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
+
+        .hero-panel {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            background:
+                radial-gradient(circle at top right, rgba(255, 214, 153, 0.32), transparent 28%),
+                linear-gradient(135deg, rgba(255, 250, 242, 0.94), rgba(252, 247, 237, 0.78));
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .hero-panel::after {
+            content: "";
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            right: -90px;
+            bottom: -90px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(15, 118, 110, 0.18), transparent 65%);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.55rem 0.9rem;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.1);
+            color: var(--brand-deep);
+            font-size: 0.85rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .hero-title {
+            max-width: 12ch;
+            margin-bottom: 1rem;
+            font-size: clamp(2.4rem, 5vw, 4.6rem);
+            line-height: 0.95;
+        }
+
+        .hero-text {
+            max-width: 44rem;
+            margin-bottom: 0;
+            color: var(--muted);
+            font-size: 1.05rem;
+            line-height: 1.75;
+        }
+
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .hero-stat {
+            border: 1px solid rgba(15, 118, 110, 0.12);
+            background: rgba(255, 255, 255, 0.64);
+            border-radius: var(--radius-lg);
+            padding: 1.1rem 1.2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-stat-label {
+            display: block;
+            margin-bottom: 0.35rem;
+            color: var(--muted);
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .hero-stat-value {
+            font-size: 1.9rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .filters-panel,
+        .category-section,
+        .empty-state,
+        .modal-content,
+        #chat-window {
+            border: 1px solid rgba(255, 255, 255, 0.48);
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow);
+        }
+
+        .filters-panel {
+            border-radius: var(--radius-lg);
+            padding: 1.15rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .filters-title {
+            margin: 0 0 0.85rem;
+            color: var(--muted);
+            font-size: 0.92rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
         .category-filters {
             display: flex;
             flex-wrap: wrap;
             gap: 0.75rem;
-            justify-content: center;
-            margin-bottom: 2rem;
         }
+
         .filter-chip {
             appearance: none;
-            background-color: #fff;
-            border: 1px solid #ced4da;
+            border: 1px solid rgba(15, 118, 110, 0.14);
+            background: rgba(255, 255, 255, 0.86);
             border-radius: 999px;
-            color: #495057;
+            color: var(--muted);
             cursor: pointer;
             font-size: 0.95rem;
-            font-weight: 600;
-            padding: 0.5rem 1rem;
-            transition: all 0.2s ease;
+            font-weight: 700;
+            padding: 0.7rem 1rem;
+            transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
         }
-        .filter-chip:hover { border-color: #212529; color: #212529; }
-        .filter-chip.is-active { background-color: #212529; border-color: #212529; color: #fff; }
-        .category-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
-        .category-count { background-color: #212529; color: #fff; border-radius: 999px; font-size: 0.85rem; padding: 0.35rem 0.75rem; }
-        .event-category-badge { background-color: #e9ecef; color: #495057; border-radius: 999px; font-size: 0.8rem; font-weight: 600; padding: 0.25rem 0.65rem; }
-        .verification-badge { border-radius: 999px; display: inline-block; font-size: 0.75rem; font-weight: 700; margin-top: 0.5rem; padding: 0.3rem 0.7rem; }
-        .verification-recent { background-color: #d1e7dd; color: #0f5132; }
-        .verification-warning { background-color: #fff3cd; color: #664d03; }
-        .verification-stale { background-color: #f8d7da; color: #842029; }
-        .is-hidden { display: none; }
-        
-        /* Chat Styling */
-        #chat-window { width: 350px; height: 450px; transition: all 0.3s ease; }
-        #chat-messages::-webkit-scrollbar { width: 5px; }
-        #chat-messages::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+
+        .filter-chip:hover {
+            transform: translateY(-2px);
+            border-color: rgba(15, 118, 110, 0.36);
+            color: var(--brand-deep);
+        }
+
+        .filter-chip.is-active {
+            background: linear-gradient(135deg, #0f766e, #115e59);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 14px 28px rgba(15, 118, 110, 0.2);
+        }
+
+        .category-section {
+            border-radius: var(--radius-xl);
+            padding: 1.4rem;
+        }
+
+        .category-section + .category-section {
+            margin-top: 2rem;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .category-title {
+            margin: 0;
+            font-size: 1.7rem;
+        }
+
+        .category-subtitle {
+            margin: 0.2rem 0 0;
+            color: var(--muted);
+        }
+
+        .category-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 54px;
+            padding: 0.55rem 0.9rem;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.1);
+            color: var(--brand-deep);
+            font-size: 0.92rem;
+            font-weight: 800;
+        }
+
+        .event-card {
+            position: relative;
+            height: 100%;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(251, 247, 240, 0.96));
+            box-shadow: 0 18px 34px rgba(31, 41, 51, 0.08);
+            overflow: hidden;
+            transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease;
+        }
+
+        .event-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 4px;
+            background: linear-gradient(90deg, #0f766e, #14b8a6, #d97706);
+        }
+
+        .event-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(15, 118, 110, 0.22);
+            box-shadow: 0 24px 44px rgba(31, 41, 51, 0.14);
+        }
+
+        .event-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100%;
+            padding: 1.35rem;
+        }
+
+        .event-meta {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .updated-text {
+            color: var(--muted);
+            font-size: 0.86rem;
+            font-weight: 600;
+        }
+
+        .event-category-badge,
+        .verification-badge {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            padding: 0.38rem 0.7rem;
+        }
+
+        .event-category-badge {
+            background: rgba(15, 118, 110, 0.08);
+            color: var(--brand-deep);
+        }
+
+        .verification-badge {
+            margin-top: 0.75rem;
+        }
+
+        .verification-recent {
+            background: rgba(22, 163, 74, 0.15);
+            color: #166534;
+        }
+
+        .verification-warning {
+            background: rgba(217, 119, 6, 0.16);
+            color: #9a3412;
+        }
+
+        .verification-stale,
+        .verification-unknown {
+            background: rgba(220, 38, 38, 0.12);
+            color: #991b1b;
+        }
+
+        .event-title {
+            margin: 0;
+            font-family: "Manrope", sans-serif;
+            font-size: 1.28rem;
+            font-weight: 800;
+            line-height: 1.35;
+            color: #163046;
+        }
+
+        .event-description {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.75;
+        }
+
+        .event-details {
+            display: grid;
+            gap: 0.85rem;
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(60, 79, 99, 0.1);
+        }
+
+        .detail-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.8rem;
+            color: #264155;
+        }
+
+        .detail-icon {
+            width: 2.4rem;
+            height: 2.4rem;
+            display: grid;
+            place-items: center;
+            flex: 0 0 auto;
+            border-radius: 14px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 1rem;
+        }
+
+        .detail-label {
+            display: block;
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .detail-value {
+            color: #163046;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .map-link:hover {
+            color: var(--brand);
+        }
+
+        .empty-state {
+            border-radius: var(--radius-xl);
+            padding: 4rem 1.5rem;
+            text-align: center;
+        }
+
+        .empty-title {
+            margin-bottom: 0.75rem;
+        }
+
+        .empty-copy {
+            max-width: 36rem;
+            margin: 0 auto;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .is-hidden {
+            display: none;
+        }
+
+        .modal-content {
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            border-bottom-color: rgba(60, 79, 99, 0.1);
+            background: rgba(255, 255, 255, 0.82);
+        }
+
+        .modal-title {
+            font-family: "Manrope", sans-serif;
+            font-weight: 800;
+        }
+
+        #chat-toggle {
+            position: fixed;
+            right: 22px;
+            bottom: 22px;
+            width: 68px;
+            height: 68px;
+            border: 0;
+            border-radius: 22px;
+            background: linear-gradient(135deg, #0f766e, #115e59 55%, #d97706);
+            box-shadow: 0 20px 34px rgba(15, 118, 110, 0.28);
+            color: #fff;
+            font-size: 1.4rem;
+            z-index: 2000;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #chat-toggle:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 26px 40px rgba(15, 118, 110, 0.34);
+        }
+
+        #chat-window {
+            position: fixed;
+            right: 22px;
+            bottom: 104px;
+            width: min(390px, calc(100vw - 28px));
+            height: 520px;
+            border-radius: 24px;
+            overflow: hidden;
+            z-index: 2000;
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.1rem;
+            background: linear-gradient(135deg, #173042, #0f766e);
+            color: #fff9f1;
+        }
+
+        .chat-title {
+            margin: 0;
+            font-family: "Manrope", sans-serif;
+            font-size: 1rem;
+            font-weight: 800;
+        }
+
+        .chat-subtitle {
+            margin: 0.15rem 0 0;
+            color: rgba(255, 249, 241, 0.78);
+            font-size: 0.82rem;
+        }
+
+        #chat-messages {
+            height: 360px;
+            padding: 1rem;
+            overflow-y: auto;
+            background: linear-gradient(180deg, rgba(255, 253, 249, 0.92), rgba(247, 242, 233, 0.94));
+        }
+
+        #chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chat-messages::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: rgba(93, 107, 120, 0.35);
+        }
+
+        .chat-message {
+            max-width: 86%;
+            margin-bottom: 0.85rem;
+            padding: 0.8rem 0.95rem;
+            border-radius: 18px;
+            line-height: 1.55;
+            box-shadow: 0 12px 22px rgba(31, 41, 51, 0.08);
+            white-space: pre-wrap;
+        }
+
+        .chat-message.user {
+            margin-left: auto;
+            border-bottom-right-radius: 6px;
+            background: linear-gradient(135deg, #0f766e, #115e59);
+            color: #fff;
+        }
+
+        .chat-message.assistant {
+            border-bottom-left-radius: 6px;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--text);
+        }
+
+        .chat-message.system {
+            max-width: 100%;
+            background: rgba(15, 118, 110, 0.08);
+            color: var(--brand-deep);
+            box-shadow: none;
+        }
+
+        .chat-footer {
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.78);
+            border-top: 1px solid rgba(60, 79, 99, 0.1);
+        }
+
+        .chat-input {
+            border: 1px solid rgba(60, 79, 99, 0.12);
+            border-radius: 16px;
+            padding: 0.85rem 1rem;
+            font-size: 0.95rem;
+        }
+
+        .chat-input:focus {
+            border-color: rgba(15, 118, 110, 0.36);
+            box-shadow: 0 0 0 0.2rem rgba(15, 118, 110, 0.12);
+        }
+
+        .chat-send {
+            border: 0;
+            border-radius: 16px;
+            padding: 0.85rem 1.15rem;
+            background: linear-gradient(135deg, #0f766e, #115e59);
+            color: #fff;
+            font-weight: 800;
+        }
+
+        @media (max-width: 991.98px) {
+            .hero-title {
+                max-width: none;
+            }
+
+            .hero-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .site-shell {
+                padding-top: 0.9rem;
+            }
+
+            .topbar-inner,
+            .category-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .hero-panel,
+            .category-section,
+            .filters-panel {
+                padding: 1.2rem;
+            }
+
+            .hero-title {
+                font-size: 2.6rem;
+            }
+
+            #chat-window {
+                right: 14px;
+                left: 14px;
+                bottom: 92px;
+                width: auto;
+                height: 72vh;
+            }
+
+            #chat-toggle {
+                right: 14px;
+                bottom: 14px;
+            }
+        }
     </style>
 </head>
 <body>
-
-<nav class="navbar navbar-dark bg-dark mb-4">
-    <div class="container d-flex justify-content-between align-items-center">
-        <span class="navbar-brand mb-0 h1">Event Tracker</span>
-        <div class="language-picker">
-            {% if current_lang == 'en' %}
-                <a href="/?lang=es" class="btn btn-sm btn-outline-light">Ver en Español</a>
-            {% else %}
-                <a href="/?lang=en" class="btn btn-sm btn-outline-light">View in English</a>
-            {% endif %}
-        </div>
-    </div>
-</nav>
-
-<div class="container py-5">
-    <h1 class="mb-4 text-center">{{ "Current Events" if current_lang == 'en' else "Eventos Actuales" }}</h1>
-
-    {% if category_filters is defined and category_filters|length > 1 %}
-    <div class="category-filters">
-        {% for filter in category_filters %}
-        <button type="button" class="filter-chip{% if filter.key == 'all' %} is-active{% endif %}" data-filter="{{ filter.key }}">
-            {{ filter.label }}
-        </button>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    {% if categories %}
-        {% for category in categories %}
-        <section class="category-section" data-category="{{ category.key }}">
-            <div class="category-header">
-                <h2 class="h4">{{ category.label }}</h2>
-                <span class="category-count">{{ category.count }}</span>
+<div class="site-shell">
+    <div class="container">
+        <header class="topbar">
+            <div class="topbar-inner">
+                <div class="brand-block">
+                    <div class="brand-glyph">+</div>
+                    <div>
+                        <p class="brand-mark">Community Event Tracker</p>
+                        <p class="brand-copy">
+                            {{ "Discover current programs, workshops, and local support opportunities." if current_lang == 'en' else "Descubre programas actuales, talleres y oportunidades de apoyo en tu comunidad." }}
+                        </p>
+                    </div>
+                </div>
+                <div class="language-picker">
+                    {% if current_lang == 'en' %}
+                        <a href="/?lang=es" class="lang-toggle">Ver en Español</a>
+                    {% else %}
+                        <a href="/?lang=en" class="lang-toggle">View in English</a>
+                    {% endif %}
+                </div>
             </div>
-            <div class="row">
-                {% for event in category.events %}
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-white border-0 pt-3">
-                            <small class="text-muted">Updated: {{ event['Last Updated'] }}</small>
-                            {% if event['verification_status'] %}
-                            <div>
-                                <span class="verification-badge {{ event['verification_status']['class'] }}">
-                                    {{ event['verification_status']['label'] }}
-                                </span>
-                            </div>
-                            {% endif %}
+        </header>
+
+        <section class="hero-panel">
+            <div class="row align-items-end g-4">
+                <div class="col-lg-8">
+                    <div class="eyebrow">
+                        {{ "Updated Community Listings" if current_lang == 'en' else "Eventos Comunitarios Actualizados" }}
+                    </div>
+                    <h1 class="hero-title">
+                        {{ "Find support, events, and resources worth showing up for." if current_lang == 'en' else "Encuentra apoyo, eventos y recursos que realmente valen la pena." }}
+                    </h1>
+                    <p class="hero-text">
+                        {{ "Browse opportunities by category, open locations on the map, and use the built-in assistant when you need help deciding what fits your schedule." if current_lang == 'en' else "Explora oportunidades por categoría, abre ubicaciones en el mapa y usa el asistente integrado cuando necesites ayuda para decidir qué se adapta a tu horario." }}
+                    </p>
+                </div>
+                <div class="col-lg-4">
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <span class="hero-stat-label">{{ "Events" if current_lang == 'en' else "Eventos" }}</span>
+                            <span class="hero-stat-value">{{ events|length }}</span>
                         </div>
-                        <div class="card-body">
-                            <span class="event-category-badge">{{ category.label }}</span>
-                            <h5 class="card-title text-primary">{{ event['Event Name'] }}</h5>
-                            <p class="card-text text-secondary">{{ event['Description'] }}</p>
-                            <hr>
-                            <div class="small">
-                                <p class="mb-1"><strong>📅 Date:</strong> {{ event['Date'] }}</p>
-                                <p class="mb-1"><strong>📍 Location:</strong> 
-                                    <a href="#" class="map-link" data-bs-toggle="modal" data-bs-target="#mapModal" data-address="{{ event['Location'] }}">
-                                        {{ event['Location'] }}
-                                    </a>
-                                </p>
-                            </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-label">{{ "Categories" if current_lang == 'en' else "Categorías" }}</span>
+                            <span class="hero-stat-value">{{ categories|length }}</span>
+                        </div>
+                        <div class="hero-stat">
+                            <span class="hero-stat-label">{{ "Language" if current_lang == 'en' else "Idioma" }}</span>
+                            <span class="hero-stat-value">{{ "EN" if current_lang == 'en' else "ES" }}</span>
                         </div>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        {% if category_filters is defined and category_filters|length > 1 %}
+        <section class="filters-panel">
+            <p class="filters-title">{{ "Browse by Category" if current_lang == 'en' else "Explorar por Categoría" }}</p>
+            <div class="category-filters">
+                {% for filter in category_filters %}
+                <button type="button" class="filter-chip{% if filter.key == 'all' %} is-active{% endif %}" data-filter="{{ filter.key }}">
+                    {{ filter.label }}
+                </button>
                 {% endfor %}
             </div>
         </section>
-        {% endfor %}
-    {% else %}
-        <div class="text-center py-5"><h3>No events found.</h3></div>
-    {% endif %}
+        {% endif %}
+
+        {% if categories %}
+            {% for category in categories %}
+            <section class="category-section" data-category="{{ category.key }}">
+                <div class="category-header">
+                    <div>
+                        <h2 class="category-title">{{ category.label }}</h2>
+                        <p class="category-subtitle">
+                            {{ "A focused list of opportunities in this area." if current_lang == 'en' else "Una lista enfocada de oportunidades en esta área." }}
+                        </p>
+                    </div>
+                    <span class="category-count">{{ category.count }}</span>
+                </div>
+
+                <div class="row g-4">
+                    {% for event in category.events %}
+                    <div class="col-md-6 col-xl-4">
+                        <article class="event-card">
+                            <div class="event-card-body">
+                                <div class="event-meta">
+                                    <div>
+                                        <span class="event-category-badge">{{ category.label }}</span>
+                                        {% if event['verification_status'] %}
+                                        <div>
+                                            <span class="verification-badge {{ event['verification_status']['class'] }}">
+                                                {{ event['verification_status']['label'] }}
+                                            </span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <span class="updated-text">
+                                        {{ "Updated" if current_lang == 'en' else "Actualizado" }}<br>{{ event['Last Updated'] }}
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <h3 class="event-title">{{ event['Event Name'] }}</h3>
+                                </div>
+
+                                <p class="event-description">{{ event['Description'] }}</p>
+
+                                <div class="event-details">
+                                    <div class="detail-row">
+                                        <div class="detail-icon">📅</div>
+                                        <div>
+                                            <span class="detail-label">{{ "Date" if current_lang == 'en' else "Fecha" }}</span>
+                                            <span class="detail-value">{{ event['Date'] }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="detail-row">
+                                        <div class="detail-icon">📍</div>
+                                        <div>
+                                            <span class="detail-label">{{ "Location" if current_lang == 'en' else "Ubicación" }}</span>
+                                            <a href="#" class="detail-value map-link" data-bs-toggle="modal" data-bs-target="#mapModal" data-address="{{ event['Location'] }}">
+                                                {{ event['Location'] }}
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+        {% else %}
+            <section class="empty-state">
+                <h3 class="empty-title">{{ "No events found right now." if current_lang == 'en' else "No se encontraron eventos en este momento." }}</h3>
+                <p class="empty-copy">
+                    {{ "Once new listings are added, they will appear here with categories, dates, and location details." if current_lang == 'en' else "Cuando se agreguen nuevos eventos, aparecerán aquí con categorías, fechas y detalles de ubicación." }}
+                </p>
+            </section>
+        {% endif %}
+    </div>
 </div>
 
 <div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Event Map</h5>
+                <h5 class="modal-title">{{ "Event Map" if current_lang == 'en' else "Mapa del Evento" }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
@@ -135,22 +824,36 @@
     </div>
 </div>
 
-<button id="chat-toggle" class="btn btn-primary rounded-circle shadow" style="position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; z-index: 2000;">
+<button id="chat-toggle" type="button" aria-label="Open assistant">
     💬
 </button>
 
-<div id="chat-window" class="card shadow d-none" style="position: fixed; bottom: 90px; right: 20px; z-index: 2000;">
-    <div class="card-header bg-primary text-white d-flex justify-content-between">
-        <span>Event Assistant</span>
-        <button id="chat-close" class="btn-close btn-close-white"></button>
+<div id="chat-window" class="d-none">
+    <div class="chat-header">
+        <div>
+            <p class="chat-title">{{ "Event Assistant" if current_lang == 'en' else "Asistente de Eventos" }}</p>
+            <p class="chat-subtitle">
+                {{ "Ask about dates, locations, or what's available." if current_lang == 'en' else "Pregunta sobre fechas, ubicaciones o qué hay disponible." }}
+            </p>
+        </div>
+        <button id="chat-close" class="btn-close btn-close-white" type="button" aria-label="Close assistant"></button>
     </div>
-    <div id="chat-messages" class="card-body overflow-auto" style="height: 300px; font-size: 0.9rem;">
-        <p class="text-muted small">Ask me anything about these events!</p>
+    <div id="chat-messages">
+        <div class="chat-message system">
+            {{ "Ask me anything about the events on this page." if current_lang == 'en' else "Pregúntame lo que quieras sobre los eventos de esta página." }}
+        </div>
     </div>
-    <div class="card-footer bg-white">
+    <div class="chat-footer">
         <div class="input-group">
-            <input type="text" id="chat-input" class="form-control" placeholder="Type here...">
-            <button id="chat-send" class="btn btn-primary">Send</button>
+            <input
+                type="text"
+                id="chat-input"
+                class="form-control chat-input"
+                placeholder="{{ 'Type your question...' if current_lang == 'en' else 'Escribe tu pregunta...' }}"
+            >
+            <button id="chat-send" class="chat-send" type="button">
+                {{ "Send" if current_lang == 'en' else "Enviar" }}
+            </button>
         </div>
     </div>
 </div>
@@ -158,61 +861,71 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Filter Logic
     const filterButtons = document.querySelectorAll('[data-filter]');
     const categorySections = document.querySelectorAll('[data-category]');
-    filterButtons.forEach(btn => {
+
+    filterButtons.forEach((btn) => {
         btn.onclick = () => {
             const filter = btn.dataset.filter;
-            filterButtons.forEach(b => b.classList.toggle('is-active', b === btn));
-            categorySections.forEach(s => s.classList.toggle('is-hidden', filter !== 'all' && s.dataset.category !== filter));
+            filterButtons.forEach((button) => button.classList.toggle('is-active', button === btn));
+            categorySections.forEach((section) => {
+                section.classList.toggle('is-hidden', filter !== 'all' && section.dataset.category !== filter);
+            });
         };
     });
 
-    // Map Logic
     const mapFrame = document.getElementById('mapFrame');
-    document.querySelectorAll('.map-link').forEach(link => {
+    document.querySelectorAll('.map-link').forEach((link) => {
         link.onclick = () => {
             const addr = encodeURIComponent(link.dataset.address);
             mapFrame.src = `https://maps.google.com/maps?q=${addr}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
         };
     });
 
-    // Chat Logic
     const toggle = document.getElementById('chat-toggle');
-    const win = document.getElementById('chat-window');
+    const chatWindow = document.getElementById('chat-window');
     const close = document.getElementById('chat-close');
     const input = document.getElementById('chat-input');
     const send = document.getElementById('chat-send');
-    const msgs = document.getElementById('chat-messages');
+    const messages = document.getElementById('chat-messages');
 
-    toggle.onclick = () => win.classList.toggle('d-none');
-    close.onclick = () => win.classList.add('d-none');
+    const appendMessage = (role, text) => {
+        const message = document.createElement('div');
+        message.className = `chat-message ${role}`;
+        message.textContent = text;
+        messages.appendChild(message);
+        messages.scrollTop = messages.scrollHeight;
+    };
+
+    toggle.onclick = () => chatWindow.classList.toggle('d-none');
+    close.onclick = () => chatWindow.classList.add('d-none');
 
     send.onclick = async () => {
-        const val = input.value.trim();
-        if(!val) return;
-        msgs.innerHTML += `<div class="mb-2 text-end"><strong>You:</strong><br>${val}</div>`;
+        const value = input.value.trim();
+        if (!value) return;
+
+        appendMessage('user', value);
         input.value = '';
-        
+
         try {
-            const res = await fetch('/chat', {
+            const response = await fetch('/chat', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({message: val})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: value })
             });
-            const data = await res.json();
-            msgs.innerHTML += `<div class="mb-2"><strong>Assistant:</strong><br>${data.response}</div>`;
-            msgs.scrollTop = msgs.scrollHeight;
-        } catch(e) {
-            msgs.innerHTML += `<div class="text-danger small">Error connecting to assistant.</div>`;
+            const data = await response.json();
+            appendMessage('assistant', data.response);
+        } catch (error) {
+            appendMessage('system', 'Error connecting to assistant.');
         }
     };
 
-    // Allow Enter key to send message
-    input.onkeypress = (e) => { if(e.key === 'Enter') send.click(); };
+    input.onkeypress = (event) => {
+        if (event.key === 'Enter') {
+            send.click();
+        }
+    };
 });
 </script>
-
 </body>
 </html>

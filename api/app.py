@@ -12,7 +12,13 @@ import hashlib
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from database import init_db, get_cached_events, save_cached_events
+from database import (
+    init_db,
+    get_cached_events,
+    get_cached_translation,
+    save_cached_events,
+    save_cached_translation,
+)
 
 init_db() 
 app = Flask(__name__)
@@ -97,6 +103,15 @@ def enrich_events(events, lang='en', cache_scope='default'):
         print("DEBUG: Loading from cache")
         return translation_cache[cache_key]
 
+    persisted_translation = None
+    if cache_scope and cache_scope != "default":
+        persisted_translation = get_cached_translation(cache_scope, lang)
+
+    if persisted_translation:
+        print("DEBUG: Loading translated events from DB cache")
+        translation_cache[cache_key] = persisted_translation
+        return persisted_translation
+
     try:
         print("DEBUG: Starting Batch Translation...")
         # Prepare the list for OpenAI
@@ -132,6 +147,8 @@ def enrich_events(events, lang='en', cache_scope='default'):
 
         # Save to cache
         translation_cache[cache_key] = enriched_events
+        if cache_scope and cache_scope != "default":
+            save_cached_translation(cache_scope, lang, enriched_events)
         print("DEBUG: Translation Successful")
         
     except Exception as e:

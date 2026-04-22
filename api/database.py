@@ -20,7 +20,7 @@ def get_cached_events(data_hash):
         print(f"Cache read error: {e}")
         return None
 
-def save_cached_events(data_hash, raw_events, classified_events):
+def save_cached_events(data_hash, raw_events):
     try:
         r = get_redis()
         # Get all keys and delete old cache
@@ -28,6 +28,6 @@ def save_cached_events(data_hash, raw_events, classified_events):
         if old_keys:
             r.delete(*old_keys)
         # Save new cache — expires in 24 hours just in case
-        r.set(f"events:{data_hash}", json.dumps(classified_events), ex=86400)
+        r.set(f"events:{data_hash}", json.dumps(raw_events), ex=86400)
     except Exception as e:
         print(f"Cache write error: {e}")

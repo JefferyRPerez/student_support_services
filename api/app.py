@@ -74,7 +74,7 @@ def get_verification_status(last_updated_value):
 
 translation_cache = {}
 
-def enrich_events(events, lang='en'):
+def enrich_events(events, lang='en', cache_scope='default'):
     if not events:
         return []
 
@@ -92,7 +92,7 @@ def enrich_events(events, lang='en'):
         return enriched_events
 
     # 3. Check Cache
-    cache_key = f"sheet_es_{len(events)}"
+    cache_key = f"{cache_scope}_es_{len(events)}"
     if cache_key in translation_cache:
         print("DEBUG: Loading from cache")
         return translation_cache[cache_key]
@@ -150,7 +150,7 @@ def getEvents():
         cached = get_cached_events(data_hash) 
         if cached:
             print("DEBUG: Serving from DB Cache no API Calls Needed")
-            return cached,False 
+            return cached, data_hash
 
         # Turn the text into a format Pandas understands
         df = pd.read_csv(io.StringIO(response.text))
@@ -161,22 +161,20 @@ def getEvents():
         return raw_events, data_hash 
     except Exception as e:
         print(f"Error fetching from Google Sheets: {e}")
-        return []
+        return [], None
 
 @app.route('/')
 def index():
 
     lang = request.args.get('lang','en') 
     raw_events, data_hash = getEvents() 
+    cache_scope = data_hash or "events"
+
+    all_events = enrich_events(raw_events, lang=lang, cache_scope=cache_scope)
+    grouped_events = group_events_by_category(all_events)
 
     if data_hash:
-        print("DEBUG: New Data is Detected Running Classification") 
-        all_events = enrich_events(raw_events,lang=lang)
-        grouped_events = group_events_by_category(all_events)
-        save_cached_events(data_hash, raw_events, all_events)
-    else:
-        all_events = raw_events 
-        grouped_events = group_events_by_category(all_events) 
+        save_cached_events(data_hash, raw_events)
 
 
     visible_categories = [

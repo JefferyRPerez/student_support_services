@@ -4,6 +4,7 @@ import os
 CACHE_VERSION = "v2"
 EVENTS_PREFIX = f"events:{CACHE_VERSION}"
 TRANSLATIONS_PREFIX = f"translations:{CACHE_VERSION}"
+ORGANIZER_EVENTS_KEY = f"organizer_events:{CACHE_VERSION}"
 
 def get_redis():
     from upstash_redis import Redis
@@ -58,3 +59,19 @@ def save_cached_translation(data_hash, lang, translated_events):
         )
     except Exception as e:
         print(f"Translation cache write error: {e}")
+
+def get_organizer_events():
+    try:
+        r = get_redis()
+        cached = r.get(ORGANIZER_EVENTS_KEY)
+        return json.loads(cached) if cached else []
+    except Exception as e:
+        print(f"Organizer events read error: {e}")
+        return []
+
+def save_organizer_events(events):
+    try:
+        r = get_redis()
+        r.set(ORGANIZER_EVENTS_KEY, json.dumps(events))
+    except Exception as e:
+        print(f"Organizer events write error: {e}")

@@ -126,6 +126,14 @@
             color: #ffffff;
         }
 
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
         .hero-panel {
             position: relative;
             overflow: hidden;
@@ -679,11 +687,16 @@
                     </div>
                 </div>
                 <div class="language-picker">
-                    {% if current_lang == 'en' %}
-                        <a href="/?lang=es" class="lang-toggle">Ver en Español</a>
-                    {% else %}
-                        <a href="/?lang=en" class="lang-toggle">View in English</a>
-                    {% endif %}
+                    <div class="topbar-actions">
+                        <a href="/organizer" class="lang-toggle">
+                            {{ "Organizer Portal" if current_lang == 'en' else "Portal de Organizadores" }}
+                        </a>
+                        {% if current_lang == 'en' %}
+                            <a href="/?lang=es" class="lang-toggle">Ver en Español</a>
+                        {% else %}
+                            <a href="/?lang=en" class="lang-toggle">View in English</a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </header>

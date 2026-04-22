@@ -1,15 +1,25 @@
 import pandas as pd
-from flask import Flask, render_template, request
+from flask import (
+    Flask,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 import io
 import requests
 import sys
 from collections import OrderedDict
 from datetime import datetime, timezone
+import hmac
 from pathlib import Path
 from openai import OpenAI 
 import os
 import json
 import hashlib 
+import uuid
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -17,13 +27,20 @@ from database import (
     init_db,
     get_cached_events,
     get_cached_translation,
+    get_organizer_events,
     save_cached_events,
+    save_organizer_events,
     save_cached_translation,
 )
 
 init_db() 
 app = Flask(__name__)
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-me")
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY","").strip())  
+
+ORGANIZER_USERNAME = os.getenv("ORGANIZER_USERNAME", "organizer")
+ORGANIZER_PASSWORD = os.getenv("ORGANIZER_PASSWORD", "change-me")
+ORGANIZER_SESSION_KEY = "organizer_authenticated"
 
 CURRENT_DIR = Path(__file__).resolve().parent
 if str(CURRENT_DIR) not in sys.path:
@@ -53,6 +70,42 @@ def get_category_labels(lang):
 
 def hash_events(raw_csv_text):
     return hashlib.md5(raw_csv_text.encode()).hexdigest()
+
+def hash_event_collection(events):
+    serialized = json.dumps(events, sort_keys=True)
+    return hashlib.md5(serialized.encode()).hexdigest()
+
+def organizer_is_authenticated():
+    return session.get(ORGANIZER_SESSION_KEY, False)
+
+def require_organizer_login():
+    if organizer_is_authenticated():
+        return None
+    flash("Please log in to manage organizer events.", "error")
+    return redirect(url_for("organizer_portal"))
+
+def build_organizer_event(form_data):
+    event_name = form_data.get("event_name", "").strip()
+    description = form_data.get("description", "").strip()
+    date = form_data.get("date", "").strip()
+    time_value = form_data.get("time", "").strip()
+    location = form_data.get("location", "").strip()
+    organizer_name = form_data.get("organizer_name", "").strip()
+
+    if not event_name or not description or not date or not location or not organizer_name:
+        raise ValueError("Event name, description, date, location, and organizer name are required.")
+
+    return {
+        "id": str(uuid.uuid4()),
+        "Event Name": event_name,
+        "Description": description,
+        "Date": date,
+        "Time": time_value,
+        "Location": location,
+        "Organizer Name": organizer_name,
+        "Last Updated": datetime.now(timezone.utc).date().isoformat(),
+        "Submitted Source": "Organizer Portal",
+    }
 
 def translate_text(text,target_language="Spanish"):
     if not text or pd.isna(text) or text == '':
@@ -191,7 +244,7 @@ def enrich_events(events, lang='en', cache_scope='default'):
 
     return enriched_events
 
-def getEvents():
+def get_sheet_events():
     try:
         # Fetch the data from Google Sheets
         response = requests.get(SHEET_CSV_URL, timeout=15)
@@ -202,7 +255,7 @@ def getEvents():
         cached = get_cached_events(data_hash) 
         if cached:
             print("DEBUG: Serving from DB Cache no API Calls Needed")
-            return cached, data_hash
+            return cached, data_hash, True
 
         # Turn the text into a format Pandas understands
         df = pd.read_csv(io.StringIO(response.text))
@@ -210,16 +263,24 @@ def getEvents():
         df = df.fillna('')
         df.columns = [str(c).strip() for c in df.columns]
         raw_events = df.to_dict(orient='records') 
-        return raw_events, data_hash 
+        return raw_events, data_hash, False
     except Exception as e:
         print(f"Error fetching from Google Sheets: {e}")
-        return [], None
+        return [], None, False
+
+def getEvents():
+    sheet_events, sheet_hash, sheet_cache_hit = get_sheet_events()
+    organizer_events = get_organizer_events()
+    combined_events = [*sheet_events, *organizer_events]
+    organizer_hash = hash_event_collection(organizer_events)
+    combined_hash = hash_events(f"{sheet_hash or 'no-sheet'}:{organizer_hash}")
+    return combined_events, combined_hash, sheet_hash, organizer_events, sheet_cache_hit
 
 @app.route('/')
 def index():
 
     lang = request.args.get('lang','en') 
-    raw_events, data_hash = getEvents() 
+    raw_events, data_hash, sheet_hash, _, sheet_cache_hit = getEvents() 
     cache_scope = data_hash or "events"
     category_labels = get_category_labels(lang)
 
@@ -237,8 +298,8 @@ def index():
     else:
         all_events = flatten_grouped_events(grouped_events)
 
-    if data_hash:
-        save_cached_events(data_hash, raw_events)
+    if sheet_hash and not sheet_cache_hit:
+        save_cached_events(sheet_hash, [event for event in raw_events if event.get("Submitted Source") != "Organizer Portal"])
 
 
     visible_categories = [
@@ -269,6 +330,53 @@ def index():
         ],
     )
 
+@app.route('/organizer', methods=['GET', 'POST'])
+def organizer_portal():
+    if request.method == 'POST':
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+
+        username_matches = hmac.compare_digest(username, ORGANIZER_USERNAME)
+        password_matches = hmac.compare_digest(password, ORGANIZER_PASSWORD)
+
+        if username_matches and password_matches:
+            session[ORGANIZER_SESSION_KEY] = True
+            flash("You are now logged in.", "success")
+            return redirect(url_for("organizer_portal"))
+
+        flash("Invalid organizer username or password.", "error")
+        return redirect(url_for("organizer_portal"))
+
+    return render_template(
+        'organizer.html',
+        is_authenticated=organizer_is_authenticated(),
+        organizer_events=get_organizer_events(),
+    )
+
+@app.route('/organizer/events', methods=['POST'])
+def organizer_add_event():
+    auth_redirect = require_organizer_login()
+    if auth_redirect:
+        return auth_redirect
+
+    try:
+        new_event = build_organizer_event(request.form)
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("organizer_portal"))
+
+    organizer_events = get_organizer_events()
+    organizer_events.append(new_event)
+    save_organizer_events(organizer_events)
+    flash("Event added successfully.", "success")
+    return redirect(url_for("organizer_portal"))
+
+@app.route('/organizer/logout', methods=['POST'])
+def organizer_logout():
+    session.pop(ORGANIZER_SESSION_KEY, None)
+    flash("You have been logged out.", "success")
+    return redirect(url_for("organizer_portal"))
+
 @app.route('/chat', methods=['POST'])
 def chat():
     user_query = request.json.get('message', '')
@@ -276,7 +384,7 @@ def chat():
         return {"response": "I didn't catch that. What would you like to know?"}, 400
 
     # 1. Get the latest data from your existing getEvents function
-    current_events, _ = getEvents()
+    current_events, _, _, _, _ = getEvents()
     
     # 2. Format that data into a string the AI can read
     context_str = "Here are the current events:\n"

@@ -691,7 +691,7 @@
                         <a href="{{ url_for('aiagent', lang=current_lang) }}" class="lang-toggle">
                             {{ "AI Agent" if current_lang == 'en' else "Agente IA" }}
                         </a>
-                        <a href="{{ url_for('organizer_portal') }}" class="lang-toggle">
+                        <a href="{{ url_for('organizer_portal', lang=current_lang) }}" class="lang-toggle">
                             {{ "Organizer Portal" if current_lang == 'en' else "Portal de Organizadores" }}
                         </a>
                         {% if current_lang == 'en' %}

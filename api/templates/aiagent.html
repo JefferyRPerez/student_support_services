@@ -321,7 +321,7 @@
                     <a href="{{ url_for('index', lang=current_lang) }}" class="nav-pill secondary">
                         {{ "All Events" if current_lang == 'en' else "Todos los Eventos" }}
                     </a>
-                    <a href="{{ url_for('organizer_portal') }}" class="nav-pill secondary">
+                    <a href="{{ url_for('organizer_portal', lang=current_lang) }}" class="nav-pill secondary">
                         {{ "Organizer Portal" if current_lang == 'en' else "Portal de Organizadores" }}
                     </a>
                     {% if current_lang == 'en' %}

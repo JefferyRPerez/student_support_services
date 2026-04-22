@@ -41,6 +41,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY","").strip())
 ORGANIZER_USERNAME = os.getenv("ORGANIZER_USERNAME", "organizer")
 ORGANIZER_PASSWORD = os.getenv("ORGANIZER_PASSWORD", "change-me")
 ORGANIZER_SESSION_KEY = "organizer_authenticated"
+SUPPORTED_LANGS = {"en", "es"}
 
 CURRENT_DIR = Path(__file__).resolve().parent
 if str(CURRENT_DIR) not in sys.path:
@@ -63,6 +64,25 @@ CATEGORY_LABELS_ES = {
     "other": "Otros",
 }
 
+def normalize_lang(lang):
+    return lang if lang in SUPPORTED_LANGS else "en"
+
+def get_current_lang():
+    requested_lang = request.args.get("lang")
+    if requested_lang in SUPPORTED_LANGS:
+        session["lang"] = requested_lang
+        return requested_lang
+
+    form_lang = request.form.get("lang")
+    if form_lang in SUPPORTED_LANGS:
+        session["lang"] = form_lang
+        return form_lang
+
+    return normalize_lang(session.get("lang", "en"))
+
+def ui_text(english_text, spanish_text):
+    return spanish_text if get_current_lang() == "es" else english_text
+
 def get_category_labels(lang):
     if lang == "es":
         return CATEGORY_LABELS_ES
@@ -81,8 +101,15 @@ def organizer_is_authenticated():
 def require_organizer_login():
     if organizer_is_authenticated():
         return None
-    flash("Please log in to manage organizer events.", "error")
-    return redirect(url_for("organizer_portal"))
+    current_lang = get_current_lang()
+    flash(
+        ui_text(
+            "Please log in to manage organizer events.",
+            "Inicia sesión para administrar los eventos de organizadores.",
+        ),
+        "error",
+    )
+    return redirect(url_for("organizer_portal", lang=current_lang))
 
 def build_organizer_event(form_data):
     event_name = form_data.get("event_name", "").strip()
@@ -93,7 +120,12 @@ def build_organizer_event(form_data):
     organizer_name = form_data.get("organizer_name", "").strip()
 
     if not event_name or not description or not date or not location or not organizer_name:
-        raise ValueError("Event name, description, date, location, and organizer name are required.")
+        raise ValueError(
+            ui_text(
+                "Event name, description, date, location, and organizer name are required.",
+                "El nombre del evento, la descripción, la fecha, la ubicación y el nombre del organizador son obligatorios.",
+            )
+        )
 
     return {
         "id": str(uuid.uuid4()),
@@ -331,12 +363,12 @@ def getEvents():
 @app.route('/')
 @app.route('/events')
 def index():
-    lang = request.args.get('lang','en')
+    lang = get_current_lang()
     return render_template('index.html', **build_public_events_context(lang))
 
 @app.route('/aiagent')
 def aiagent():
-    lang = request.args.get('lang', 'en')
+    lang = get_current_lang()
     return render_template(
         'aiagent.html',
         current_lang=lang,
@@ -344,6 +376,8 @@ def aiagent():
 
 @app.route('/organizer', methods=['GET', 'POST'])
 def organizer_portal():
+    current_lang = get_current_lang()
+
     if request.method == 'POST':
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
@@ -353,20 +387,28 @@ def organizer_portal():
 
         if username_matches and password_matches:
             session[ORGANIZER_SESSION_KEY] = True
-            flash("You are now logged in.", "success")
-            return redirect(url_for("organizer_portal"))
+            flash(ui_text("You are now logged in.", "Has iniciado sesión."), "success")
+            return redirect(url_for("organizer_portal", lang=current_lang))
 
-        flash("Invalid organizer username or password.", "error")
-        return redirect(url_for("organizer_portal"))
+        flash(
+            ui_text(
+                "Invalid organizer username or password.",
+                "El nombre de usuario o la contraseña del organizador no son válidos.",
+            ),
+            "error",
+        )
+        return redirect(url_for("organizer_portal", lang=current_lang))
 
     return render_template(
         'organizer.html',
+        current_lang=current_lang,
         is_authenticated=organizer_is_authenticated(),
         organizer_events=get_organizer_events(),
     )
 
 @app.route('/organizer/events', methods=['POST'])
 def organizer_add_event():
+    current_lang = get_current_lang()
     auth_redirect = require_organizer_login()
     if auth_redirect:
         return auth_redirect
@@ -375,24 +417,31 @@ def organizer_add_event():
         new_event = build_organizer_event(request.form)
     except ValueError as exc:
         flash(str(exc), "error")
-        return redirect(url_for("organizer_portal"))
+        return redirect(url_for("organizer_portal", lang=current_lang))
 
     organizer_events = get_organizer_events()
     organizer_events.append(new_event)
     save_organizer_events(organizer_events)
-    flash("Event added successfully.", "success")
-    return redirect(url_for("organizer_portal"))
+    flash(
+        ui_text("Event added successfully.", "Evento agregado correctamente."),
+        "success",
+    )
+    return redirect(url_for("organizer_portal", lang=current_lang))
 
 @app.route('/organizer/logout', methods=['POST'])
 def organizer_logout():
+    current_lang = get_current_lang()
     session.pop(ORGANIZER_SESSION_KEY, None)
-    flash("You have been logged out.", "success")
-    return redirect(url_for("organizer_portal"))
+    flash(
+        ui_text("You have been logged out.", "Has cerrado sesión."),
+        "success",
+    )
+    return redirect(url_for("organizer_portal", lang=current_lang))
 
 @app.route('/chat', methods=['POST'])
 def chat():
     user_query = request.json.get('message', '')
-    lang = request.json.get('lang', 'en')
+    lang = normalize_lang(request.json.get('lang') or session.get("lang", "en"))
     if not user_query:
         return {"response": "I didn't catch that. What would you like to know?"}, 400
 

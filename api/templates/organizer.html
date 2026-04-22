@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ current_lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -276,14 +276,29 @@
         <div class="container">
             <header class="topbar">
                 <div>
-                    <h1 class="brand-mark">Organizer Portal</h1>
-                    <p class="brand-copy">Log in to add events that should appear on the public community event page.</p>
+                    <h1 class="brand-mark">{{ "Organizer Portal" if current_lang == 'en' else "Portal de Organizadores" }}</h1>
+                    <p class="brand-copy">
+                        {{ "Log in to add events that should appear on the public community event page." if current_lang == 'en' else "Inicia sesión para agregar eventos que deben aparecer en la página pública de eventos comunitarios." }}
+                    </p>
                 </div>
                 <div class="nav-links">
-                    <a href="{{ url_for('index') }}" class="nav-link-button secondary">Back to Site</a>
+                    <a href="{{ url_for('index', lang=current_lang) }}" class="nav-link-button secondary">
+                        {{ "Back to Site" if current_lang == 'en' else "Volver al Sitio" }}
+                    </a>
+                    <a href="{{ url_for('aiagent', lang=current_lang) }}" class="nav-link-button secondary">
+                        {{ "AI Agent" if current_lang == 'en' else "Agente IA" }}
+                    </a>
+                    {% if current_lang == 'en' %}
+                    <a href="{{ url_for('organizer_portal', lang='es') }}" class="nav-link-button secondary">Ver en Español</a>
+                    {% else %}
+                    <a href="{{ url_for('organizer_portal', lang='en') }}" class="nav-link-button secondary">View in English</a>
+                    {% endif %}
                     {% if is_authenticated %}
-                    <form method="post" action="{{ url_for('organizer_logout') }}">
-                        <button type="submit" class="nav-link-button">Log Out</button>
+                    <form method="post" action="{{ url_for('organizer_logout', lang=current_lang) }}">
+                        <input type="hidden" name="lang" value="{{ current_lang }}">
+                        <button type="submit" class="nav-link-button">
+                            {{ "Log Out" if current_lang == 'en' else "Cerrar Sesión" }}
+                        </button>
                     </form>
                     {% endif %}
                 </div>
@@ -302,76 +317,98 @@
             {% if not is_authenticated %}
             <section class="hero-grid">
                 <div class="panel">
-                    <div class="eyebrow">Organizer Access</div>
-                    <h2 class="hero-title">Publish events without editing the spreadsheet by hand.</h2>
-                    <p class="hero-copy">This portal gives event organizers a private place to sign in and post upcoming events directly to the site. Submitted events will appear alongside the existing public listings.</p>
+                    <div class="eyebrow">{{ "Organizer Access" if current_lang == 'en' else "Acceso para Organizadores" }}</div>
+                    <h2 class="hero-title">
+                        {{ "Publish events without editing the spreadsheet by hand." if current_lang == 'en' else "Publica eventos sin editar la hoja de cálculo manualmente." }}
+                    </h2>
+                    <p class="hero-copy">
+                        {{ "This portal gives event organizers a private place to sign in and post upcoming events directly to the site. Submitted events will appear alongside the existing public listings." if current_lang == 'en' else "Este portal ofrece a los organizadores un lugar privado para iniciar sesión y publicar próximos eventos directamente en el sitio. Los eventos enviados aparecerán junto a las publicaciones públicas existentes." }}
+                    </p>
                 </div>
                 <div class="panel">
-                    <h3 class="section-title">Log In</h3>
-                    <p class="section-subtitle">Use the organizer credentials configured for this app.</p>
-                    <form method="post" action="{{ url_for('organizer_portal') }}" class="auth-form">
+                    <h3 class="section-title">{{ "Log In" if current_lang == 'en' else "Iniciar Sesión" }}</h3>
+                    <p class="section-subtitle">
+                        {{ "Use the organizer credentials configured for this app." if current_lang == 'en' else "Usa las credenciales de organizador configuradas para esta aplicación." }}
+                    </p>
+                    <form method="post" action="{{ url_for('organizer_portal', lang=current_lang) }}" class="auth-form">
+                        <input type="hidden" name="lang" value="{{ current_lang }}">
                         <div>
-                            <label for="username" class="field-label">Username</label>
+                            <label for="username" class="field-label">{{ "Username" if current_lang == 'en' else "Usuario" }}</label>
                             <input id="username" name="username" type="text" class="field-input" required>
                         </div>
                         <div>
-                            <label for="password" class="field-label">Password</label>
+                            <label for="password" class="field-label">{{ "Password" if current_lang == 'en' else "Contraseña" }}</label>
                             <input id="password" name="password" type="password" class="field-input" required>
                         </div>
-                        <button type="submit" class="action-button">Enter Portal</button>
+                        <button type="submit" class="action-button">
+                            {{ "Enter Portal" if current_lang == 'en' else "Entrar al Portal" }}
+                        </button>
                     </form>
                 </div>
             </section>
             {% else %}
             <section class="hero-grid">
                 <div class="panel">
-                    <div class="eyebrow">Create Event</div>
-                    <h2 class="hero-title">Add a new event for students and community members.</h2>
-                    <p class="hero-copy">Fill out the form with the event details you want displayed on the public site. New submissions are stored in the organizer event feed and included in the homepage listing.</p>
+                    <div class="eyebrow">{{ "Create Event" if current_lang == 'en' else "Crear Evento" }}</div>
+                    <h2 class="hero-title">
+                        {{ "Add a new event for students and community members." if current_lang == 'en' else "Agrega un nuevo evento para estudiantes y miembros de la comunidad." }}
+                    </h2>
+                    <p class="hero-copy">
+                        {{ "Fill out the form with the event details you want displayed on the public site. New submissions are stored in the organizer event feed and included in the homepage listing." if current_lang == 'en' else "Completa el formulario con los detalles del evento que deseas mostrar en el sitio público. Los nuevos envíos se guardan en la lista de eventos de organizadores y se incluyen en la página principal." }}
+                    </p>
                 </div>
                 <div class="panel">
-                    <h3 class="section-title">Submission Notes</h3>
-                    <p class="panel-copy">Use a clear title, include the location students should go to, and keep the description specific enough for the assistant and category grouping to understand the event.</p>
+                    <h3 class="section-title">{{ "Submission Notes" if current_lang == 'en' else "Notas de Envío" }}</h3>
+                    <p class="panel-copy">
+                        {{ "Use a clear title, include the location students should go to, and keep the description specific enough for the assistant and category grouping to understand the event." if current_lang == 'en' else "Usa un título claro, incluye la ubicación a la que deben ir los estudiantes y mantén la descripción lo suficientemente específica para que el asistente y la clasificación entiendan el evento." }}
+                    </p>
                 </div>
             </section>
 
             <section class="panel mb-4">
-                <h3 class="section-title">New Event</h3>
-                <p class="section-subtitle">Required fields are event name, description, date, location, and organizer name.</p>
-                <form method="post" action="{{ url_for('organizer_add_event') }}" class="event-form">
+                <h3 class="section-title">{{ "New Event" if current_lang == 'en' else "Nuevo Evento" }}</h3>
+                <p class="section-subtitle">
+                    {{ "Required fields are event name, description, date, location, and organizer name." if current_lang == 'en' else "Los campos obligatorios son nombre del evento, descripción, fecha, ubicación y nombre del organizador." }}
+                </p>
+                <form method="post" action="{{ url_for('organizer_add_event', lang=current_lang) }}" class="event-form">
+                    <input type="hidden" name="lang" value="{{ current_lang }}">
                     <div class="form-grid">
                         <div>
-                            <label for="event_name" class="field-label">Event Name</label>
+                            <label for="event_name" class="field-label">{{ "Event Name" if current_lang == 'en' else "Nombre del Evento" }}</label>
                             <input id="event_name" name="event_name" type="text" class="field-input" required>
                         </div>
                         <div>
-                            <label for="organizer_name" class="field-label">Organizer Name</label>
+                            <label for="organizer_name" class="field-label">{{ "Organizer Name" if current_lang == 'en' else "Nombre del Organizador" }}</label>
                             <input id="organizer_name" name="organizer_name" type="text" class="field-input" required>
                         </div>
                         <div>
-                            <label for="date" class="field-label">Date</label>
+                            <label for="date" class="field-label">{{ "Date" if current_lang == 'en' else "Fecha" }}</label>
                             <input id="date" name="date" type="date" class="field-input" required>
                         </div>
                         <div>
-                            <label for="time" class="field-label">Time</label>
-                            <input id="time" name="time" type="text" class="field-input" placeholder="6:00 PM - 8:00 PM">
+                            <label for="time" class="field-label">{{ "Time" if current_lang == 'en' else "Hora" }}</label>
+                            <input id="time" name="time" type="text" class="field-input" placeholder="{{ '6:00 PM - 8:00 PM' if current_lang == 'en' else '6:00 PM - 8:00 PM' }}">
                         </div>
                         <div class="w-100" style="grid-column: 1 / -1;">
-                            <label for="location" class="field-label">Location</label>
+                            <label for="location" class="field-label">{{ "Location" if current_lang == 'en' else "Ubicación" }}</label>
                             <input id="location" name="location" type="text" class="field-input" required>
                         </div>
                         <div class="w-100" style="grid-column: 1 / -1;">
-                            <label for="description" class="field-label">Description</label>
+                            <label for="description" class="field-label">{{ "Description" if current_lang == 'en' else "Descripción" }}</label>
                             <textarea id="description" name="description" class="field-textarea" required></textarea>
                         </div>
                     </div>
-                    <button type="submit" class="action-button">Publish Event</button>
+                    <button type="submit" class="action-button">
+                        {{ "Publish Event" if current_lang == 'en' else "Publicar Evento" }}
+                    </button>
                 </form>
             </section>
 
             <section class="panel">
-                <h3 class="section-title">Submitted Organizer Events</h3>
-                <p class="section-subtitle">These are the events currently stored through the organizer portal.</p>
+                <h3 class="section-title">{{ "Submitted Organizer Events" if current_lang == 'en' else "Eventos Enviados por Organizadores" }}</h3>
+                <p class="section-subtitle">
+                    {{ "These are the events currently stored through the organizer portal." if current_lang == 'en' else "Estos son los eventos almacenados actualmente a través del portal de organizadores." }}
+                </p>
 
                 {% if organizer_events %}
                 <div class="submitted-list">
@@ -379,20 +416,22 @@
                     <article class="event-card">
                         <div class="event-meta">
                             <span>{{ event.get('Organizer Name', 'Organizer') }}</span>
-                            <span>Updated {{ event.get('Last Updated', 'Unknown') }}</span>
+                            <span>{{ "Updated" if current_lang == 'en' else "Actualizado" }} {{ event.get('Last Updated', 'Unknown') }}</span>
                         </div>
                         <h4 class="event-title">{{ event.get('Event Name', 'Untitled Event') }}</h4>
                         <p class="event-copy">{{ event.get('Description', '') }}</p>
-                        <p class="event-detail">Date: {{ event.get('Date', '') }}</p>
+                        <p class="event-detail">{{ "Date" if current_lang == 'en' else "Fecha" }}: {{ event.get('Date', '') }}</p>
                         {% if event.get('Time') %}
-                        <p class="event-detail">Time: {{ event.get('Time', '') }}</p>
+                        <p class="event-detail">{{ "Time" if current_lang == 'en' else "Hora" }}: {{ event.get('Time', '') }}</p>
                         {% endif %}
-                        <p class="event-detail">Location: {{ event.get('Location', '') }}</p>
+                        <p class="event-detail">{{ "Location" if current_lang == 'en' else "Ubicación" }}: {{ event.get('Location', '') }}</p>
                     </article>
                     {% endfor %}
                 </div>
                 {% else %}
-                <p class="panel-copy">No organizer-submitted events have been added yet.</p>
+                <p class="panel-copy">
+                    {{ "No organizer-submitted events have been added yet." if current_lang == 'en' else "Todavía no se han agregado eventos enviados por organizadores." }}
+                </p>
                 {% endif %}
             </section>
             {% endif %}

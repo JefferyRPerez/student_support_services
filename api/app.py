@@ -34,6 +34,23 @@ from event_classifier import CATEGORY_LABELS, EVENT_CATEGORIES, group_events_by_
 # Replace this with the URL you copied from 'Publish to Web'
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1K-VlChD1zeeOGQGxI97GqcyAWAEd3FrEQQVUZSn8uYs/export?format=csv"
 
+CATEGORY_LABELS_ES = {
+    "club_events": "Eventos de Clubes",
+    "professional_development": "Desarrollo Profesional",
+    "faith": "Fe",
+    "community_service": "Servicio Comunitario",
+    "academic_support": "Apoyo Académico",
+    "wellness": "Bienestar",
+    "arts_culture": "Arte y Cultura",
+    "social": "Social",
+    "other": "Otros",
+}
+
+def get_category_labels(lang):
+    if lang == "es":
+        return CATEGORY_LABELS_ES
+    return CATEGORY_LABELS
+
 def hash_events(raw_csv_text):
     return hashlib.md5(raw_csv_text.encode()).hexdigest()
 
@@ -204,6 +221,7 @@ def index():
     lang = request.args.get('lang','en') 
     raw_events, data_hash = getEvents() 
     cache_scope = data_hash or "events"
+    category_labels = get_category_labels(lang)
 
     base_events = enrich_events(raw_events, lang='en', cache_scope=cache_scope)
     grouped_events = group_events_by_category(base_events)
@@ -226,7 +244,7 @@ def index():
     visible_categories = [
         {
             "key": key,
-            "label": CATEGORY_LABELS[key],
+            "label": category_labels[key],
             "events": grouped_events[key],
             "count": len(grouped_events[key]),
         }
@@ -240,7 +258,10 @@ def index():
         categories=visible_categories,
         current_lang=lang,
         category_filters=[
-            {"key": "all", "label": "All Categories"},
+            {
+                "key": "all",
+                "label": "Todas las Categorías" if lang == "es" else "All Categories",
+            },
             *[
                 {"key": category["key"], "label": category["label"]}
                 for category in visible_categories

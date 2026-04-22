@@ -107,6 +107,58 @@ def build_organizer_event(form_data):
         "Submitted Source": "Organizer Portal",
     }
 
+def build_public_events_context(lang):
+    raw_events, data_hash, sheet_hash, _, sheet_cache_hit = getEvents()
+    cache_scope = data_hash or "events"
+    category_labels = get_category_labels(lang)
+
+    base_events = enrich_events(raw_events, lang='en', cache_scope=cache_scope)
+    grouped_events = group_events_by_category(base_events)
+
+    if lang == 'es':
+        classified_events = flatten_grouped_events(grouped_events)
+        all_events = enrich_events(
+            classified_events,
+            lang='es',
+            cache_scope=f"{cache_scope}_classified",
+        )
+        grouped_events = regroup_events_by_existing_category(all_events)
+    else:
+        all_events = flatten_grouped_events(grouped_events)
+
+    if sheet_hash and not sheet_cache_hit:
+        save_cached_events(
+            sheet_hash,
+            [event for event in raw_events if event.get("Submitted Source") != "Organizer Portal"],
+        )
+
+    visible_categories = [
+        {
+            "key": key,
+            "label": category_labels[key],
+            "events": grouped_events[key],
+            "count": len(grouped_events[key]),
+        }
+        for key in EVENT_CATEGORIES
+        if grouped_events[key]
+    ]
+
+    return {
+        "events": all_events,
+        "categories": visible_categories,
+        "current_lang": lang,
+        "category_filters": [
+            {
+                "key": "all",
+                "label": "Todas las Categorías" if lang == "es" else "All Categories",
+            },
+            *[
+                {"key": category["key"], "label": category["label"]}
+                for category in visible_categories
+            ],
+        ],
+    }
+
 def translate_text(text,target_language="Spanish"):
     if not text or pd.isna(text) or text == '':
         return ""
@@ -277,57 +329,17 @@ def getEvents():
     return combined_events, combined_hash, sheet_hash, organizer_events, sheet_cache_hit
 
 @app.route('/')
+@app.route('/events')
 def index():
+    lang = request.args.get('lang','en')
+    return render_template('index.html', **build_public_events_context(lang))
 
-    lang = request.args.get('lang','en') 
-    raw_events, data_hash, sheet_hash, _, sheet_cache_hit = getEvents() 
-    cache_scope = data_hash or "events"
-    category_labels = get_category_labels(lang)
-
-    base_events = enrich_events(raw_events, lang='en', cache_scope=cache_scope)
-    grouped_events = group_events_by_category(base_events)
-
-    if lang == 'es':
-        classified_events = flatten_grouped_events(grouped_events)
-        all_events = enrich_events(
-            classified_events,
-            lang='es',
-            cache_scope=f"{cache_scope}_classified",
-        )
-        grouped_events = regroup_events_by_existing_category(all_events)
-    else:
-        all_events = flatten_grouped_events(grouped_events)
-
-    if sheet_hash and not sheet_cache_hit:
-        save_cached_events(sheet_hash, [event for event in raw_events if event.get("Submitted Source") != "Organizer Portal"])
-
-
-    visible_categories = [
-        {
-            "key": key,
-            "label": category_labels[key],
-            "events": grouped_events[key],
-            "count": len(grouped_events[key]),
-        }
-        for key in EVENT_CATEGORIES
-        if grouped_events[key]
-    ]
-
+@app.route('/aiagent')
+def aiagent():
+    lang = request.args.get('lang', 'en')
     return render_template(
-        'index.html',
-        events=all_events,
-        categories=visible_categories,
+        'aiagent.html',
         current_lang=lang,
-        category_filters=[
-            {
-                "key": "all",
-                "label": "Todas las Categorías" if lang == "es" else "All Categories",
-            },
-            *[
-                {"key": category["key"], "label": category["label"]}
-                for category in visible_categories
-            ],
-        ],
     )
 
 @app.route('/organizer', methods=['GET', 'POST'])
@@ -380,16 +392,27 @@ def organizer_logout():
 @app.route('/chat', methods=['POST'])
 def chat():
     user_query = request.json.get('message', '')
+    lang = request.json.get('lang', 'en')
     if not user_query:
         return {"response": "I didn't catch that. What would you like to know?"}, 400
 
-    # 1. Get the latest data from your existing getEvents function
+    # 1. Get the latest event data
     current_events, _, _, _, _ = getEvents()
-    
-    # 2. Format that data into a string the AI can read
-    context_str = "Here are the current events:\n"
-    for e in current_events:
-        context_str += f"- {e.get('Event Name')}: {e.get('Description')} at {e.get('Location')} on {e.get('Date')}\n"
+    event_context = [
+        {
+            "event_name": e.get("Event Name", ""),
+            "description": e.get("Description", ""),
+            "date": e.get("Date", ""),
+            "time": e.get("Time", ""),
+            "location": e.get("Location", ""),
+            "last_updated": e.get("Last Updated", ""),
+            "organizer_name": e.get("Organizer Name", ""),
+            "source": e.get("Submitted Source", "Spreadsheet"),
+        }
+        for e in current_events
+    ]
+
+    response_language = "Spanish" if lang == "es" else "English"
 
     try:
         response = client.chat.completions.create(
@@ -398,12 +421,22 @@ def chat():
                 {
                     "role": "system", 
                     "content": (
-                        "You are a helpful community assistant. "
-                        "Answer questions ONLY using the provided event context. "
-                        "If the answer isn't in the data, politely say you don't have information on that."
+                        "You are a helpful community events assistant. "
+                        "Answer questions ONLY using the provided event data. "
+                        "Be especially helpful with date, time, and location questions. "
+                        "If multiple events match, summarize the matching events clearly. "
+                        "If the answer is not in the data, say that you do not have that information. "
+                        f"Respond in {response_language}."
                     )
                 },
-                {"role": "system", "content": f"CONTEXT: {context_str}"},
+                {
+                    "role": "system",
+                    "content": (
+                        f"Today's date is {datetime.now(timezone.utc).date().isoformat()}.\n"
+                        "Event data JSON:\n"
+                        f"{json.dumps(event_context, ensure_ascii=False)}"
+                    ),
+                },
                 {"role": "user", "content": user_query}
             ]
         )

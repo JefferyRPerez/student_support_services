@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event AI Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --text: #1f2933;
+            --muted: #5d6b78;
+            --brand: #0f766e;
+            --brand-deep: #0b4f4a;
+            --accent: #d97706;
+            --surface: rgba(255, 252, 247, 0.92);
+            --line: rgba(60, 79, 99, 0.14);
+            --shadow: 0 22px 50px rgba(23, 40, 56, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 32%),
+                radial-gradient(circle at 85% 20%, rgba(217, 119, 6, 0.18), transparent 24%),
+                linear-gradient(180deg, #fcf7ef 0%, #f4efe4 45%, #efe7da 100%);
+            font-family: "Manrope", sans-serif;
+        }
+
+        h1, h2, h3 {
+            font-family: "Fraunces", serif;
+            letter-spacing: -0.02em;
+        }
+
+        .page-shell {
+            padding: 1.25rem 0 2rem;
+        }
+
+        .topbar,
+        .sidebar,
+        .chat-shell {
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            background: var(--surface);
+            backdrop-filter: blur(18px);
+            box-shadow: var(--shadow);
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border-radius: 999px;
+            margin-bottom: 1.5rem;
+        }
+
+        .topbar-title {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .topbar-copy {
+            margin: 0.2rem 0 0;
+            color: var(--muted);
+        }
+
+        .topbar-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .nav-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            padding: 0.75rem 1rem;
+            text-decoration: none;
+            font-weight: 800;
+            color: #fff;
+            background: linear-gradient(135deg, var(--brand), #115e59);
+        }
+
+        .nav-pill.secondary {
+            color: var(--brand-deep);
+            background: rgba(15, 118, 110, 0.08);
+            border: 1px solid rgba(15, 118, 110, 0.18);
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 320px minmax(0, 1fr);
+            gap: 1.5rem;
+            min-height: calc(100vh - 140px);
+        }
+
+        .sidebar {
+            border-radius: 28px;
+            padding: 1.4rem;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            margin-bottom: 1rem;
+            padding: 0.5rem 0.8rem;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.08);
+            color: var(--brand-deep);
+            font-size: 0.82rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .sidebar-title {
+            margin-bottom: 0.8rem;
+            font-size: 2rem;
+            line-height: 0.95;
+        }
+
+        .sidebar-copy {
+            margin: 0 0 1.2rem;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .prompt-list {
+            display: grid;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+        }
+
+        .prompt-button {
+            width: 100%;
+            text-align: left;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 0.95rem 1rem;
+            background: rgba(255, 255, 255, 0.72);
+            color: var(--text);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .prompt-button:hover {
+            transform: translateY(-2px);
+            border-color: rgba(15, 118, 110, 0.28);
+        }
+
+        .chat-shell {
+            border-radius: 30px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.35rem 1.4rem;
+            border-bottom: 1px solid rgba(60, 79, 99, 0.1);
+            background: linear-gradient(135deg, rgba(23, 48, 66, 0.95), rgba(15, 118, 110, 0.95));
+            color: #fff9f1;
+        }
+
+        .chat-header-title {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .chat-header-copy {
+            margin: 0.3rem 0 0;
+            color: rgba(255, 249, 241, 0.8);
+        }
+
+        .chat-status {
+            border-radius: 999px;
+            padding: 0.55rem 0.85rem;
+            background: rgba(255, 255, 255, 0.14);
+            font-size: 0.82rem;
+            font-weight: 800;
+        }
+
+        .chat-messages {
+            flex: 1;
+            min-height: 420px;
+            padding: 1.4rem;
+            overflow-y: auto;
+            background: linear-gradient(180deg, rgba(255, 253, 249, 0.96), rgba(247, 242, 233, 0.96));
+        }
+
+        .chat-message {
+            max-width: 78%;
+            margin-bottom: 0.9rem;
+            padding: 1rem 1.1rem;
+            border-radius: 22px;
+            box-shadow: 0 12px 22px rgba(31, 41, 51, 0.08);
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .chat-message.user {
+            margin-left: auto;
+            border-bottom-right-radius: 8px;
+            background: linear-gradient(135deg, var(--brand), #115e59);
+            color: #fff;
+        }
+
+        .chat-message.assistant {
+            border-bottom-left-radius: 8px;
+            background: rgba(255, 255, 255, 0.96);
+        }
+
+        .chat-message.system {
+            max-width: 100%;
+            background: rgba(15, 118, 110, 0.08);
+            color: var(--brand-deep);
+            box-shadow: none;
+        }
+
+        .chat-composer {
+            padding: 1.25rem 1.4rem 1.4rem;
+            border-top: 1px solid rgba(60, 79, 99, 0.1);
+            background: rgba(255, 255, 255, 0.72);
+        }
+
+        .composer-box {
+            display: flex;
+            gap: 0.85rem;
+            align-items: flex-end;
+        }
+
+        .composer-input {
+            flex: 1;
+            min-height: 76px;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            padding: 1rem 1.1rem;
+            resize: vertical;
+            font: inherit;
+            background: rgba(255, 255, 255, 0.96);
+        }
+
+        .composer-input:focus {
+            outline: none;
+            border-color: rgba(15, 118, 110, 0.38);
+            box-shadow: 0 0 0 0.2rem rgba(15, 118, 110, 0.12);
+        }
+
+        .send-button {
+            border: 0;
+            border-radius: 20px;
+            padding: 1rem 1.2rem;
+            min-width: 120px;
+            background: linear-gradient(135deg, var(--brand), #115e59 75%, var(--accent));
+            color: #fff;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .composer-help {
+            margin: 0.75rem 0 0;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 991.98px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+                border-radius: 28px;
+            }
+
+            .chat-message {
+                max-width: 92%;
+            }
+
+            .composer-box {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .send-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <div class="container">
+            <header class="topbar">
+                <div>
+                    <h1 class="topbar-title">{{ "Event AI Agent" if current_lang == 'en' else "Agente IA de Eventos" }}</h1>
+                    <p class="topbar-copy">
+                        {{ "Ask natural-language questions about events, dates, times, and locations." if current_lang == 'en' else "Haz preguntas en lenguaje natural sobre eventos, fechas, horarios y ubicaciones." }}
+                    </p>
+                </div>
+                <div class="topbar-actions">
+                    <a href="{{ url_for('index', lang=current_lang) }}" class="nav-pill secondary">
+                        {{ "All Events" if current_lang == 'en' else "Todos los Eventos" }}
+                    </a>
+                    <a href="{{ url_for('organizer_portal') }}" class="nav-pill secondary">
+                        {{ "Organizer Portal" if current_lang == 'en' else "Portal de Organizadores" }}
+                    </a>
+                    {% if current_lang == 'en' %}
+                    <a href="{{ url_for('aiagent', lang='es') }}" class="nav-pill">Ver en Español</a>
+                    {% else %}
+                    <a href="{{ url_for('aiagent', lang='en') }}" class="nav-pill">View in English</a>
+                    {% endif %}
+                </div>
+            </header>
+
+            <div class="content-grid">
+                <aside class="sidebar">
+                    <div class="eyebrow">{{ "Prompt Ideas" if current_lang == 'en' else "Ideas de Preguntas" }}</div>
+                    <h2 class="sidebar-title">
+                        {{ "Search events the way you actually think." if current_lang == 'en' else "Busca eventos como realmente piensas." }}
+                    </h2>
+                    <p class="sidebar-copy">
+                        {{ "Ask for events by day, by time window, by topic, or by location. The assistant uses the same event data shown on the website." if current_lang == 'en' else "Pregunta por eventos según el día, el horario, el tema o la ubicación. El asistente usa los mismos datos de eventos que aparecen en el sitio web." }}
+                    </p>
+
+                    <div class="prompt-list">
+                        <button class="prompt-button" type="button" data-prompt="{{ 'What events are happening this week?' if current_lang == 'en' else '¿Qué eventos ocurren esta semana?' }}">
+                            {{ "What events are happening this week?" if current_lang == 'en' else "¿Qué eventos ocurren esta semana?" }}
+                        </button>
+                        <button class="prompt-button" type="button" data-prompt="{{ 'Show me evening events after 5 PM.' if current_lang == 'en' else 'Muéstrame eventos por la tarde después de las 5 PM.' }}">
+                            {{ "Show me evening events after 5 PM." if current_lang == 'en' else "Muéstrame eventos por la tarde después de las 5 PM." }}
+                        </button>
+                        <button class="prompt-button" type="button" data-prompt="{{ 'Are there any wellness or academic support events coming up?' if current_lang == 'en' else '¿Hay próximos eventos de bienestar o apoyo académico?' }}">
+                            {{ "Are there any wellness or academic support events coming up?" if current_lang == 'en' else "¿Hay próximos eventos de bienestar o apoyo académico?" }}
+                        </button>
+                        <button class="prompt-button" type="button" data-prompt="{{ 'Which events are happening on campus tomorrow?' if current_lang == 'en' else '¿Qué eventos ocurren en el campus mañana?' }}">
+                            {{ "Which events are happening on campus tomorrow?" if current_lang == 'en' else "¿Qué eventos ocurren en el campus mañana?" }}
+                        </button>
+                    </div>
+                </aside>
+
+                <section class="chat-shell">
+                    <div class="chat-header">
+                        <div>
+                            <h2 class="chat-header-title">{{ "Ask About Events" if current_lang == 'en' else "Pregunta Sobre Eventos" }}</h2>
+                            <p class="chat-header-copy">
+                                {{ "The assistant can help you find events by date, time, category, or place." if current_lang == 'en' else "El asistente puede ayudarte a encontrar eventos por fecha, hora, categoría o lugar." }}
+                            </p>
+                        </div>
+                        <div class="chat-status" id="chat-status">
+                            {{ "Ready" if current_lang == 'en' else "Listo" }}
+                        </div>
+                    </div>
+
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="chat-message system">
+                            {{ "Ask me things like: What events are happening Friday afternoon? Which workshops are in the library? Are there any professional development events this month?" if current_lang == 'en' else "Pregúntame cosas como: ¿Qué eventos ocurren el viernes por la tarde? ¿Qué talleres están en la biblioteca? ¿Hay eventos de desarrollo profesional este mes?" }}
+                        </div>
+                    </div>
+
+                    <div class="chat-composer">
+                        <div class="composer-box">
+                            <textarea
+                                id="chat-input"
+                                class="composer-input"
+                                placeholder="{{ 'Type a question about events...' if current_lang == 'en' else 'Escribe una pregunta sobre eventos...' }}"
+                            ></textarea>
+                            <button id="chat-send" class="send-button" type="button">
+                                {{ "Send" if current_lang == 'en' else "Enviar" }}
+                            </button>
+                        </div>
+                        <p class="composer-help">
+                            {{ "Tip: mention a date, weekday, time, category, or location to narrow the results." if current_lang == 'en' else "Consejo: menciona una fecha, día de la semana, hora, categoría o ubicación para limitar los resultados." }}
+                        </p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const currentLang = {{ current_lang|tojson }};
+        const input = document.getElementById('chat-input');
+        const send = document.getElementById('chat-send');
+        const messages = document.getElementById('chat-messages');
+        const status = document.getElementById('chat-status');
+        const promptButtons = document.querySelectorAll('[data-prompt]');
+
+        const labels = {
+            ready: currentLang === 'es' ? 'Listo' : 'Ready',
+            thinking: currentLang === 'es' ? 'Pensando...' : 'Thinking...',
+            error: currentLang === 'es' ? 'Error' : 'Error',
+            connectionError: currentLang === 'es'
+                ? 'No se pudo conectar con el asistente.'
+                : 'Could not connect to the assistant.'
+        };
+
+        const appendMessage = (role, text) => {
+            const message = document.createElement('div');
+            message.className = `chat-message ${role}`;
+            message.textContent = text;
+            messages.appendChild(message);
+            messages.scrollTop = messages.scrollHeight;
+        };
+
+        const askQuestion = async () => {
+            const value = input.value.trim();
+            if (!value) return;
+
+            appendMessage('user', value);
+            input.value = '';
+            status.textContent = labels.thinking;
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: value,
+                        lang: currentLang
+                    })
+                });
+                const data = await response.json();
+                appendMessage('assistant', data.response);
+                status.textContent = labels.ready;
+            } catch (error) {
+                appendMessage('system', labels.connectionError);
+                status.textContent = labels.error;
+            }
+        };
+
+        send.onclick = askQuestion;
+        input.onkeypress = (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                askQuestion();
+            }
+        };
+
+        promptButtons.forEach((button) => {
+            button.onclick = () => {
+                input.value = button.dataset.prompt;
+                input.focus();
+            };
+        });
+    });
+    </script>
+</body>
+</html>

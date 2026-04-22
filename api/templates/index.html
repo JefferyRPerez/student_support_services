@@ -688,13 +688,16 @@
                 </div>
                 <div class="language-picker">
                     <div class="topbar-actions">
-                        <a href="/organizer" class="lang-toggle">
+                        <a href="{{ url_for('aiagent', lang=current_lang) }}" class="lang-toggle">
+                            {{ "AI Agent" if current_lang == 'en' else "Agente IA" }}
+                        </a>
+                        <a href="{{ url_for('organizer_portal') }}" class="lang-toggle">
                             {{ "Organizer Portal" if current_lang == 'en' else "Portal de Organizadores" }}
                         </a>
                         {% if current_lang == 'en' %}
-                            <a href="/?lang=es" class="lang-toggle">Ver en Español</a>
+                            <a href="{{ url_for('index', lang='es') }}" class="lang-toggle">Ver en Español</a>
                         {% else %}
-                            <a href="/?lang=en" class="lang-toggle">View in English</a>
+                            <a href="{{ url_for('index', lang='en') }}" class="lang-toggle">View in English</a>
                         {% endif %}
                     </div>
                 </div>
@@ -874,6 +877,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const currentLang = {{ current_lang|tojson }};
     const filterButtons = document.querySelectorAll('[data-filter]');
     const categorySections = document.querySelectorAll('[data-category]');
 
@@ -924,7 +928,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: value })
+                body: JSON.stringify({
+                    message: value,
+                    lang: currentLang
+                })
             });
             const data = await response.json();
             appendMessage('assistant', data.response);

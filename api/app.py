@@ -3,6 +3,7 @@ from flask import Flask, render_template, request
 import io
 import requests
 import sys
+from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
 from openai import OpenAI 
@@ -79,6 +80,23 @@ def get_verification_status(last_updated_value):
     }
 
 translation_cache = {}
+
+def flatten_grouped_events(grouped_events):
+    flattened = []
+    for category_key in EVENT_CATEGORIES:
+        flattened.extend(grouped_events.get(category_key, []))
+    return flattened
+
+def regroup_events_by_existing_category(events):
+    grouped = OrderedDict((category, []) for category in EVENT_CATEGORIES)
+
+    for event in events:
+        category_key = event.get("ai_category", {}).get("category", "other")
+        if category_key not in grouped:
+            category_key = "other"
+        grouped[category_key].append(event)
+
+    return grouped
 
 def enrich_events(events, lang='en', cache_scope='default'):
     if not events:
@@ -187,8 +205,19 @@ def index():
     raw_events, data_hash = getEvents() 
     cache_scope = data_hash or "events"
 
-    all_events = enrich_events(raw_events, lang=lang, cache_scope=cache_scope)
-    grouped_events = group_events_by_category(all_events)
+    base_events = enrich_events(raw_events, lang='en', cache_scope=cache_scope)
+    grouped_events = group_events_by_category(base_events)
+
+    if lang == 'es':
+        classified_events = flatten_grouped_events(grouped_events)
+        all_events = enrich_events(
+            classified_events,
+            lang='es',
+            cache_scope=f"{cache_scope}_classified",
+        )
+        grouped_events = regroup_events_by_existing_category(all_events)
+    else:
+        all_events = flatten_grouped_events(grouped_events)
 
     if data_hash:
         save_cached_events(data_hash, raw_events)
